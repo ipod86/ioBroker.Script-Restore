@@ -1,0 +1,91 @@
+{
+	"common": {
+		"name": "script-restore",
+		"version": "0.0.1",
+		"news": {
+			"0.0.1": {
+				"en": "initial release",
+				"de": "Erstveröffentlichung",
+				"ru": "Начальная версия",
+				"pt": "lançamento inicial",
+				"nl": "Eerste uitgave",
+				"fr": "Première version",
+				"it": "Versione iniziale",
+				"es": "Versión inicial",
+				"pl": "Pierwsze wydanie",
+				"uk": "Початкова версія",
+				"zh-cn": "首次出版"
+			}
+		},
+		"titleLang": {
+			"en": "Script Restore",
+			"de": "Skriptwiederherstellung",
+			"ru": "Восстановление скрипта",
+			"pt": "Restauração de script",
+			"nl": "Scriptherstel",
+			"fr": "Restauration de scripts",
+			"it": "Ripristino dello script",
+			"es": "Restauración de secuencias de comandos",
+			"pl": "Przywracanie skryptu",
+			"uk": "Відновлення сценарію",
+			"zh-cn": "脚本恢复"
+		},
+		"desc": {
+			"en": "Restore ioBroker scripts from backup files.",
+			"de": "Stellen Sie ioBroker-Skripte aus Sicherungsdateien wieder her.",
+			"ru": "Восстановите скрипты ioBroker из файлов резервных копий.",
+			"pt": "Restaure scripts ioBroker de arquivos de backup.",
+			"nl": "Herstel ioBroker-scripts vanuit back-upbestanden.",
+			"fr": "Restaurez les scripts ioBroker à partir des fichiers de sauvegarde.",
+			"it": "Ripristina gli script ioBroker dai file di backup.",
+			"es": "Restaure los scripts de ioBroker a partir de archivos de copia de seguridad.",
+			"pl": "Przywróć skrypty ioBroker z plików kopii zapasowych.",
+			"uk": "Відновлення сценаріїв ioBroker з файлів резервних копій.",
+			"zh-cn": "从备份文件恢复 ioBroker 脚本。"
+		},
+		"authors": [
+			"ipod86 <david@graef.email>"
+		],
+		"keywords": [
+			"script",
+			"restore",
+			"backuo",
+			"javascript"
+		],
+		"licenseInformation": {
+			"type": "free",
+			"license": "MIT"
+		},
+		"platform": "Javascript/Node.js",
+		"icon": "script-restore.png",
+		"enabled": true,
+		"extIcon": "https://raw.githubusercontent.com/ipod86/ioBroker.script-restore/main/admin/script-restore.png",
+		"readme": "https://github.com/ipod86/ioBroker.script-restore/blob/main/README.md",
+		"loglevel": "info",
+		"tier": 3,
+		"mode": "daemon",
+		"type": "general",
+		"compact": true,
+		"connectionType": "local",
+		"dataSource": "poll",
+		"adminUI": {
+			"config": "materialize"
+		},
+		"dependencies": [
+			{
+				"js-controller": ">=6.0.11"
+			}
+		],
+		"globalDependencies": [
+			{
+				"admin": ">=7.0.23"
+			}
+		]
+	},
+	"native": {
+		"option1": true,
+		"option2": "42"
+	},
+	"objects": [],
+	"instanceObjects": []
+}
