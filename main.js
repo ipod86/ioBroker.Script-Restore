@@ -31,9 +31,6 @@ class ScriptRestore extends utils.Adapter {
 		}
 	}
 
-	/**
-	 * Kommunikation mit dem Frontend (Admin-Tab)
-	 */
 	async onMessage(obj) {
 		if (typeof obj === 'object' && obj.message) {
 			switch (obj.command) {
@@ -43,6 +40,9 @@ class ScriptRestore extends utils.Adapter {
 				case 'getScriptsFromBackup':
 					await this.handleGetScriptsFromBackup(obj);
 					break;
+				case 'processUploadedBackup':
+					await this.handleProcessUploadedBackup(obj);
+					break;
 				case 'importScript':
 					await this.handleImportScript(obj);
 					break;
@@ -50,9 +50,6 @@ class ScriptRestore extends utils.Adapter {
 		}
 	}
 
-	/**
-	 * Liest das Backup-Verzeichnis aus und filtert nach passenden Archiven
-	 */
 	async handleGetLocalBackups(obj) {
 		const backupPath = this.config.backupPath || '/opt/iobroker/backups';
 		try {
@@ -62,11 +59,10 @@ class ScriptRestore extends utils.Adapter {
 			}
 
 			const files = fs.readdirSync(backupPath);
-			// Filtern: Nur javascripts oder iobroker Backups, die gepackt sind
 			const backups = files.filter(f => 
 				(f.startsWith('javascripts') || f.startsWith('iobroker')) && 
 				(f.endsWith('.tar.gz') || f.endsWith('.gz'))
-			).sort().reverse(); // Neueste Backups ganz oben
+			).sort().reverse();
 
 			this.sendTo(obj.from, obj.command, { backups }, obj.callback);
 		} catch (err) {
@@ -74,9 +70,6 @@ class ScriptRestore extends utils.Adapter {
 		}
 	}
 
-	/**
-	 * Entpackt das gewählte Archiv temporär und liest die Skripte aus
-	 */
 	async handleGetScriptsFromBackup(obj) {
 		const { filename } = obj.message;
 		const backupPath = this.config.backupPath || '/opt/iobroker/backups';
@@ -87,13 +80,36 @@ class ScriptRestore extends utils.Adapter {
 			return;
 		}
 
+		await this.extractAndSendScripts(fullPath, obj);
+	}
+
+	async handleProcessUploadedBackup(obj) {
+		const { filename, data } = obj.message;
+		const uploadPath = path.join(this.tempDir, 'uploaded_' + filename);
+
+		try {
+			// Base64 String in echte Datei umwandeln und speichern
+			const buffer = Buffer.from(data, 'base64');
+			fs.writeFileSync(uploadPath, buffer);
+
+			// Auslesen und ans Frontend senden
+			await this.extractAndSendScripts(uploadPath, obj);
+
+			// Nach dem Auslesen die hochgeladene Datei wieder löschen
+			if (fs.existsSync(uploadPath)) {
+				fs.unlinkSync(uploadPath);
+			}
+		} catch (err) {
+			this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
+		}
+	}
+
+	async extractAndSendScripts(archivePath, obj) {
 		try {
 			// Temporären Ordner leeren
-			await execAsync(`rm -rf "${this.tempDir}"/*`);
+			await execAsync(`rm -rf "${this.tempDir}"/*.jsonl "${this.tempDir}"/*.json`);
 			
-			// Native tar-Extraktion (schnell und speicherschonend)
-			// Entpackt gezielt nur json/jsonl Dateien aus dem Archiv
-			const extractCmd = `tar -xzf "${fullPath}" -C "${this.tempDir}" --wildcards "*.jsonl" "*.json" 2>/dev/null || true`;
+			const extractCmd = `tar -xzf "${archivePath}" -C "${this.tempDir}" --wildcards "*.jsonl" "*.json" 2>/dev/null || true`;
 			await execAsync(extractCmd);
 
 			let scripts = [];
@@ -111,14 +127,10 @@ class ScriptRestore extends utils.Adapter {
 		}
 	}
 
-	/**
-	 * Parsen der entpackten json oder jsonl Datei (Analog zur Python-Logik)
-	 */
 	async parseBackupFile(filePath) {
 		const scripts = [];
 		try {
 			const content = fs.readFileSync(filePath, 'utf-8');
-			
 			if (filePath.endsWith('.jsonl')) {
 				const lines = content.split('\n');
 				for (const line of lines) {
@@ -126,15 +138,13 @@ class ScriptRestore extends utils.Adapter {
 					try {
 						const item = JSON.parse(line);
 						this.processItem(item.id || item._id, item.value || item.doc || item, scripts);
-					} catch (e) { /* ignore parse error for single line */ }
+					} catch (e) {}
 				}
 			} else {
 				const data = JSON.parse(content);
 				if (data.id && data.value) {
-					// Single object wrapper
 					this.processItem(data.id, data.value, scripts);
 				} else {
-					// Fallback dictionary
 					for (const [k, v] of Object.entries(data)) {
 						this.processItem(k, v, scripts);
 					}
@@ -146,9 +156,6 @@ class ScriptRestore extends utils.Adapter {
 		return scripts;
 	}
 
-	/**
-	 * Filtert und formatiert die gefundenen Skript-Objekte
-	 */
 	processItem(key, val, scriptsList) {
 		const keyStr = String(key);
 		if (typeof val === 'object' && val !== null && (val.type === 'script' || keyStr.startsWith('script.js.'))) {
@@ -173,51 +180,38 @@ class ScriptRestore extends utils.Adapter {
 				}
 			}
 
-			// Den Pfad für die Darstellung im Tree bereinigen
 			const sPath = keyStr.startsWith('script.js.') ? keyStr.substring(10) : keyStr;
-
 			scriptsList.push({ name, path: sPath, type: sType, source: src });
 		}
 	}
 
-	/**
-	 * Schreibt das Skript als '_restored' in die ioBroker-Datenbank
-	 */
 	async handleImportScript(obj) {
 		const { path: scriptPath, source, type, name } = obj.message;
-		
 		if (!scriptPath || !source) {
 			this.sendTo(obj.from, obj.command, { error: 'Fehlende Skriptdaten für den Import.' }, obj.callback);
 			return;
 		}
 
 		try {
-			// Neuer ID-Pfad: script.js.restored.AlterPfad
 			const targetId = `script.js.restored.${scriptPath}`;
-			
 			const engineType = type === 'TypeScript' ? 'TypeScript/ts' :
 							   type === 'Blockly' ? 'Blockly' :
 							   type === 'Rules' ? 'Rules' : 'Javascript/js';
 
-			// Erstellt das Objekt, falls es nicht existiert
 			await this.setForeignObjectNotExistsAsync(targetId, {
 				type: 'script',
 				common: {
 					name: `${name} (Restored)`,
 					engineType: engineType,
 					source: source,
-					enabled: false, // Wichtig: Skript bleibt nach Import deaktiviert
+					enabled: false,
 					engine: 'system.adapter.javascript.0'
 				},
 				native: {}
 			});
 
-			// Überschreibt den Source-Code, falls das _restored Skript schon existierte
 			await this.extendForeignObjectAsync(targetId, {
-				common: {
-					source: source,
-					enabled: false
-				}
+				common: { source: source, enabled: false }
 			});
 
 			this.sendTo(obj.from, obj.command, { success: true, targetId }, obj.callback);
@@ -228,14 +222,9 @@ class ScriptRestore extends utils.Adapter {
 
 	onUnload(callback) {
 		try {
-			// Temporären Ordner beim Beenden aufräumen
-			if (fs.existsSync(this.tempDir)) {
-				exec(`rm -rf "${this.tempDir}"`);
-			}
+			if (fs.existsSync(this.tempDir)) exec(`rm -rf "${this.tempDir}"`);
 			callback();
-		} catch (e) {
-			callback();
-		}
+		} catch (e) { callback(); }
 	}
 }
 

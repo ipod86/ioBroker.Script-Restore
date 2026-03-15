@@ -13,7 +13,6 @@
             --primary: #3399cc;
             --primary-hover: #287a99;
             --success: #198754;
-            --success-hover: #157347;
             --warning: #ff9800;
             --warning-hover: #e68a00;
             --bg-light: #f8f9fa;
@@ -25,31 +24,14 @@
         *, *::before, *::after { box-sizing: border-box; }
         
         body, html { 
-            height: 100%; 
-            margin: 0; 
-            padding: 0; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; 
-            font-family: var(--font-main); 
-            background-color: var(--bg-light); 
-            color: #212529; 
+            height: 100%; margin: 0; padding: 0; display: flex; flex-direction: column; 
+            overflow: hidden; font-family: var(--font-main); background-color: var(--bg-light); color: #212529; 
         }
         
-        /* Navbar */
         .navbar { 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            min-height: 60px; 
-            background-color: var(--bg-dark); 
-            padding: 10px 1.5rem; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-            color: white; 
-            flex-shrink: 0;
-            z-index: 100;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: flex; align-items: center; justify-content: space-between; min-height: 60px; 
+            background-color: var(--bg-dark); padding: 10px 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            color: white; flex-shrink: 0; z-index: 100; flex-wrap: wrap; gap: 10px;
         }
         .navbar-brand { font-size: 1.25rem; white-space: nowrap; display: flex; align-items: center; gap: 10px;}
         .navbar-brand img { height: 30px; }
@@ -58,26 +40,23 @@
         .control-group select { padding: 0.375rem; border-radius: 4px; font-size: 0.875rem; outline: none; }
         .control-group button { background: var(--primary); color: white; border: none; padding: 0.5rem 1rem; font-weight: bold; font-size: 0.875rem; border-radius: 4px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
         .control-group button:hover { background: var(--primary-hover); }
+        .btn-upload { background: transparent !important; border: 1px solid #dee2e6 !important; }
+        .btn-upload:hover { background: rgba(255,255,255,0.1) !important; }
 
-        /* Main Container */
         .main-container { display: flex; flex: 1; width: 100%; overflow: hidden; flex-direction: row; }
         
-        /* Sidebar */
         .sidebar { width: 300px; min-width: 200px; max-width: 60vw; display: flex; flex-direction: column; background: white; height: 100%; flex-shrink: 0; }
         .content-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-panel); height: 100%; position: relative; overflow: hidden; min-width: 0; }
 
-        /* Resizer */
-        .resizer { width: 4px; background-color: var(--border); cursor: col-resize; transition: background-color 0.2s; z-index: 10; flex-shrink: 0; touch-action: none; }
+        .resizer { width: 4px; background-color: var(--border); cursor: col-resize; transition: background-color 0.2s; z-index: 10; flex-shrink: 0; }
         .resizer:hover, .resizer.resizing { background-color: var(--primary); width: 6px; }
 
-        /* Sidebar Elements */
         .sidebar-header { padding: 0.5rem; border-bottom: 1px solid var(--border); display: flex; gap: 5px; }
         .sidebar-header input { flex: 1; padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; outline: none; min-width: 0; }
         .btn-icon { background: #e9ecef; border: 1px solid #ced4da; border-radius: 4px; padding: 0 10px; cursor: pointer; color: #444; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
         .btn-icon:hover { background: #dde0e3; }
         .script-list { flex: 1; overflow-y: auto; padding: 5px 0; }
         
-        /* Tree View Styling */
         .tree-folder { cursor: pointer; padding: 8px 15px; font-weight: 500; color: #333; display: flex; align-items: center; user-select: none; transition: 0.1s; border-bottom: 1px solid transparent; }
         .tree-folder:hover { background-color: #f0f7ff; }
         .folder-icon { display: inline-block; width: 16px; margin-right: 8px; transition: transform 0.2s; opacity: 0.7; font-size: 0.85em; }
@@ -102,10 +81,8 @@
         .badge-TypeScript { background-color: #3375c2; color: white; }
         .badge-Rules { background-color: #05194a; color: white; }
         
-        /* Dein gewünschter Style für das Icon */
         .icon-file { opacity: 0.6; margin-right: 5px; }
 
-        /* Action Bar */
         .action-bar { background: #2d2d2d; padding: 10px 20px; border-bottom: 1px solid #444; flex-shrink: 0; display: none; }
         .action-bar-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .btn { display: inline-block; font-weight: 500; text-align: center; cursor: pointer; padding: 0.35rem 0.75rem; font-size: 0.875rem; border-radius: 4px; transition: 0.15s; border: 1px solid transparent; background: transparent; text-decoration: none; }
@@ -123,7 +100,6 @@
         .btn-primary:hover { background: var(--primary-hover); }
         .gap-2 { display: flex; gap: 8px; }
 
-        /* Code Area */
         .code-display { font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; color: #d4d4d4; flex: 1; overflow: auto; margin: 0; padding: 15px 0; counter-reset: line; line-height: 1.5; white-space: pre; }
         .code-line { display: block; padding-right: 15px; }
         .code-line:hover { background-color: rgba(255, 255, 255, 0.03); }
@@ -151,7 +127,10 @@
             <select id="backupSelect">
                 <option value="">Lade Backups...</option>
             </select>
-            <button onclick="loadSelectedBackup()">Entpacken & Lesen</button>
+            <button onclick="loadSelectedBackup()">Auswählen</button>
+            <span style="opacity: 0.5; margin: 0 5px;">|</span>
+            <input type="file" id="fileInput" accept=".tar.gz,.gz" style="display: none;" onchange="handleFileUpload(event)">
+            <button onclick="document.getElementById('fileInput').click()" class="btn-upload">Eigene hochladen</button>
         </div>
     </nav>
 
@@ -180,14 +159,13 @@
             <div id="codeContainer" class="code-empty">
                 <div>
                     <strong>Willkommen bei ioBroker Script Restore!</strong><br><br>
-                    Wähle oben rechts ein Backup aus und klicke auf "Entpacken & Lesen".
+                    Wähle oben rechts ein Backup aus oder lade ein eigenes hoch.
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // === ioBroker Init ===
         let namespace = 'script-restore.' + (window.location.search.slice(1).split('&').find(x => x.startsWith('instance='))?.split('=')[1] || '0');
         let socket = io.connect('/', {path: window.location.pathname.split('adapter/')[0] + 'socket.io'});
         
@@ -200,14 +178,12 @@
             document.getElementById('loaderText').innerText = text;
             document.getElementById('loader').style.display = 'flex';
         }
-        function hideLoader() {
-            document.getElementById('loader').style.display = 'none';
-        }
+        function hideLoader() { document.getElementById('loader').style.display = 'none'; }
 
-        // Beim Start: Lokale Backups abfragen
         socket.on('connect', () => {
             socket.emit('sendTo', namespace, 'getLocalBackups', {}, (res) => {
                 const select = document.getElementById('backupSelect');
+                if (!res) return select.innerHTML = `<option value="">Fehler: Keine Antwort (Instanz gestartet?)</option>`;
                 if (res.error) {
                     select.innerHTML = `<option value="">Fehler: ${res.error}</option>`;
                 } else if (res.backups && res.backups.length > 0) {
@@ -218,73 +194,74 @@
             });
         });
 
-        // Backup laden und entpacken (Kommunikation mit main.js)
         function loadSelectedBackup() {
             const filename = document.getElementById('backupSelect').value;
             if (!filename) return alert('Bitte zuerst ein Backup auswählen!');
 
-            showLoader('Entpacke und durchsuche Archiv...');
-            
-            socket.emit('sendTo', namespace, 'getScriptsFromBackup', { filename }, (res) => {
-                hideLoader();
-                if (res.error) return alert('Fehler: ' + res.error);
-                
-                scriptsData = res.scripts || [];
-                cur = { index: -1 };
-                
-                document.getElementById('actionBar').style.display = 'none';
-                if (scriptsData.length > 0) {
-                    document.getElementById('codeContainer').className = 'code-empty';
-                    document.getElementById('codeContainer').innerHTML = '// Skript im Baum links auswählen...';
-                } else {
-                    document.getElementById('codeContainer').innerHTML = '<span style="color: #dc3545;">Keine Skripte gefunden.</span>';
-                }
-                
-                renderList();
-            });
+            showLoader('Entpacke Archiv...');
+            socket.emit('sendTo', namespace, 'getScriptsFromBackup', { filename }, processResponse);
         }
 
-        // Import ins System (Das neue Killer-Feature)
+        // NEU: Eigene Datei vom PC hochladen
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64data = e.target.result;
+                const base64 = base64data.split(',')[1]; 
+                
+                showLoader('Lade hoch und entpacke...');
+                socket.emit('sendTo', namespace, 'processUploadedBackup', { filename: file.name, data: base64 }, (res) => {
+                    event.target.value = ''; // Reset file input
+                    processResponse(res);
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processResponse(res) {
+            hideLoader();
+            if (!res) return alert('Fehler: Keine Antwort erhalten.');
+            if (res.error) return alert('Fehler: ' + res.error);
+            
+            scriptsData = res.scripts || [];
+            cur = { index: -1 };
+            
+            document.getElementById('actionBar').style.display = 'none';
+            if (scriptsData.length > 0) {
+                document.getElementById('codeContainer').className = 'code-empty';
+                document.getElementById('codeContainer').innerHTML = '// Skript im Baum links auswählen...';
+            } else {
+                document.getElementById('codeContainer').innerHTML = '<span style="color: #dc3545;">Keine Skripte gefunden.</span>';
+            }
+            renderList();
+        }
+
         function importToSystem() {
             if (cur.index === -1) return;
             const data = scriptsData[cur.index];
             
-            if(!confirm(`Möchtest du das Skript "${data.name}" wirklich in deinen ioBroker importieren?\n\nEs wird sicherheitshalber deaktiviert angelegt unter:\nscript.js.restored.${data.path}`)) return;
+            if(!confirm(`Möchtest du das Skript "${data.name}" wirklich importieren?\n\nZiel: script.js.restored.${data.path}`)) return;
 
             showLoader('Importiere Skript...');
             socket.emit('sendTo', namespace, 'importScript', data, (res) => {
                 hideLoader();
-                if (res.error) {
-                    alert('Fehler beim Import: ' + res.error);
-                } else {
-                    alert('Erfolgreich importiert!\nDu findest es in deinen Skripten unter:\nrestored -> ' + data.path);
-                }
+                if (res.error) alert('Fehler beim Import: ' + res.error);
+                else alert('Erfolgreich importiert!\nDu findest es in deinen Skripten unter:\nrestored -> ' + data.path);
             });
         }
-
-        // === Dein restlicher Frontend-Code (angepasst für JS/TS Button-Fix) ===
         
-        function escapeHTML(str) {
-            if (!str) return '';
-            return String(str).replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
-        }
+        function escapeHTML(str) { return String(str || '').replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag])); }
 
         function toggleExpandAll() {
             isAllExpanded = !isAllExpanded;
-            const btn = document.getElementById('expandToggleBtn');
-            btn.innerHTML = isAllExpanded ? '📁' : '📂';
-            
+            document.getElementById('expandToggleBtn').innerHTML = isAllExpanded ? '📁' : '📂';
             document.querySelectorAll('.tree-folder').forEach(el => {
                 const path = el.dataset.path;
-                if (isAllExpanded) {
-                    el.querySelector('.folder-icon').classList.add('open');
-                    el.nextElementSibling.classList.add('open');
-                    openFolders.add(path);
-                } else {
-                    el.querySelector('.folder-icon').classList.remove('open');
-                    el.nextElementSibling.classList.remove('open');
-                    openFolders.delete(path);
-                }
+                if (isAllExpanded) { el.querySelector('.folder-icon').classList.add('open'); el.nextElementSibling.classList.add('open'); openFolders.add(path); } 
+                else { el.querySelector('.folder-icon').classList.remove('open'); el.nextElementSibling.classList.remove('open'); openFolders.delete(path); }
             });
         }
 
@@ -390,10 +367,8 @@
             document.getElementById('actionBar').style.display = 'block';
             document.getElementById('codeContainer').className = 'code-display';
             
-            // Anpassung: Zeigt JS oder TS an, je nachdem was das Skript wirklich ist
             const rawLabel = cur.type === 'TypeScript' ? 'TS' : 'JS';
             let html = `<button onclick="showView('src')" class="btn btn-outline-light" id="btn-src">${rawLabel}</button>`;
-            
             if (cur.xml) html += `<button onclick="showView('xml')" class="btn btn-outline-primary" id="btn-xml">BLOCKLY</button>`;
             if (cur.rule) html += `<button onclick="showView('rule')" class="btn btn-outline-success" id="btn-rule">RULES</button>`;
             
@@ -432,7 +407,6 @@
 
         document.getElementById('q').onkeyup = renderList;
 
-        // === Resizer Logik (Einfach) ===
         const resizer = document.getElementById('resizer');
         const sidebar = document.getElementById('sidebar');
         let isResizing = false;
