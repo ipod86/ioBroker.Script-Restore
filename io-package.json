@@ -68,6 +68,22 @@
 		"compact": true,
 		"connectionType": "local",
 		"dataSource": "poll",
+		"adminTab": {
+			"singleton": true,
+			"name": {
+				"en": "Script Restore",
+				"de": "Script Restore",
+				"ru": "Script Restore",
+				"pt": "Script Restore",
+				"nl": "Script Restore",
+				"fr": "Script Restore",
+				"it": "Script Restore",
+				"es": "Script Restore",
+				"pl": "Script Restore",
+				"uk": "Script Restore",
+				"zh-cn": "Script Restore"
+			}
+		},
 		"adminUI": {
 			"config": "materialize",
 			"tab": "materialize"
