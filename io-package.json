@@ -72,11 +72,6 @@
 			"config": "materialize",
 			"tab": "materialize"
 		},
-		"osDependencies": {
-			"linux": [
-				"python3-setuptools"
-			]
-		},
 		"dependencies": [
 			{
 				"js-controller": ">=6.0.11"
