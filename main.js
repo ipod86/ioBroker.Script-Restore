@@ -1,19 +1,15 @@
 'use strict';
 
-/*
- * Created with @iobroker/create-adapter v3.1.2
- */
-
-// The adapter-core module gives you access to the core ioBroker functions
-// you need to create an adapter
 const utils = require('@iobroker/adapter-core');
-
-// Load your modules here, e.g.:
-// const fs = require('fs');
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
+const util = require('util');
+const execAsync = util.promisify(exec);
 
 class ScriptRestore extends utils.Adapter {
 	/**
-	 * @param {Partial<utils.AdapterOptions>} [options] - Adapter options
+	 * @param {Partial<utils.AdapterOptions>} [options={}]
 	 */
 	constructor(options) {
 		super({
@@ -21,159 +17,230 @@ class ScriptRestore extends utils.Adapter {
 			name: 'script-restore',
 		});
 		this.on('ready', this.onReady.bind(this));
-		this.on('stateChange', this.onStateChange.bind(this));
-		// this.on('objectChange', this.onObjectChange.bind(this));
-		// this.on('message', this.onMessage.bind(this));
+		this.on('message', this.onMessage.bind(this));
 		this.on('unload', this.onUnload.bind(this));
 	}
 
-	/**
-	 * Is called when databases are connected and adapter received configuration.
-	 */
 	async onReady() {
-		// Initialize your adapter here
-
-		// The adapters config (in the instance object everything under the attribute "native") is accessible via
-		// this.config:
-		this.log.debug('config option1: ${this.config.option1}');
-		this.log.debug('config option2: ${this.config.option2}');
-
-		/*
-		For every state in the system there has to be also an object of type state
-		Here a simple template for a boolean variable named "testVariable"
-		Because every adapter instance uses its own unique namespace variable names can't collide with other adapters variables
-
-		IMPORTANT: State roles should be chosen carefully based on the state's purpose.
-		           Please refer to the state roles documentation for guidance:
-		           https://www.iobroker.net/#en/documentation/dev/stateroles.md
-		*/
-		await this.setObjectNotExistsAsync('testVariable', {
-			type: 'state',
-			common: {
-				name: 'testVariable',
-				type: 'boolean',
-				role: 'indicator',
-				read: true,
-				write: true,
-			},
-			native: {},
-		});
-
-		// In order to get state updates, you need to subscribe to them. The following line adds a subscription for our variable we have created above.
-		this.subscribeStates('testVariable');
-		// You can also add a subscription for multiple states. The following line watches all states starting with "lights."
-		// this.subscribeStates('lights.*');
-		// Or, if you really must, you can also watch all states. Don't do this if you don't need to. Otherwise this will cause a lot of unnecessary load on the system:
-		// this.subscribeStates('*');
-
-		/*
-			setState examples
-			you will notice that each setState will cause the stateChange event to fire (because of above subscribeStates cmd)
-		*/
-		// the variable testVariable is set to true as command (ack=false)
-		await this.setState('testVariable', true);
-
-		// same thing, but the value is flagged "ack"
-		// ack should be always set to true if the value is received from or acknowledged from the target system
-		await this.setState('testVariable', { val: true, ack: true });
-
-		// same thing, but the state is deleted after 30s (getState will return null afterwards)
-		await this.setState('testVariable', { val: true, ack: true, expire: 30 });
-
-		// examples for the checkPassword/checkGroup functions
-		const pwdResult = await this.checkPasswordAsync('admin', 'iobroker');
-		this.log.info(`check user admin pw iobroker: ${pwdResult}`);
-
-		const groupResult = await this.checkGroupAsync('admin', 'admin');
-		this.log.info(`check group user admin group admin: ${groupResult}`);
+		this.log.info('Script-Restore Adapter gestartet.');
+		
+		// Temporären Ordner für das Entpacken der Backups anlegen
+		this.tempDir = path.join(utils.getAbsoluteDefaultDataDir(), 'script-restore-tmp');
+		if (!fs.existsSync(this.tempDir)) {
+			fs.mkdirSync(this.tempDir, { recursive: true });
+		}
 	}
 
 	/**
-	 * Is called when adapter shuts down - callback has to be called under any circumstances!
-	 *
-	 * @param {() => void} callback - Callback function
+	 * Kommunikation mit dem Frontend (Admin-Tab)
 	 */
+	async onMessage(obj) {
+		if (typeof obj === 'object' && obj.message) {
+			switch (obj.command) {
+				case 'getLocalBackups':
+					await this.handleGetLocalBackups(obj);
+					break;
+				case 'getScriptsFromBackup':
+					await this.handleGetScriptsFromBackup(obj);
+					break;
+				case 'importScript':
+					await this.handleImportScript(obj);
+					break;
+			}
+		}
+	}
+
+	/**
+	 * Liest das Backup-Verzeichnis aus und filtert nach passenden Archiven
+	 */
+	async handleGetLocalBackups(obj) {
+		const backupPath = this.config.backupPath || '/opt/iobroker/backups';
+		try {
+			if (!fs.existsSync(backupPath)) {
+				this.sendTo(obj.from, obj.command, { error: `Ordner ${backupPath} nicht gefunden.` }, obj.callback);
+				return;
+			}
+
+			const files = fs.readdirSync(backupPath);
+			// Filtern: Nur javascripts oder iobroker Backups, die gepackt sind
+			const backups = files.filter(f => 
+				(f.startsWith('javascripts') || f.startsWith('iobroker')) && 
+				(f.endsWith('.tar.gz') || f.endsWith('.gz'))
+			).sort().reverse(); // Neueste Backups ganz oben
+
+			this.sendTo(obj.from, obj.command, { backups }, obj.callback);
+		} catch (err) {
+			this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
+		}
+	}
+
+	/**
+	 * Entpackt das gewählte Archiv temporär und liest die Skripte aus
+	 */
+	async handleGetScriptsFromBackup(obj) {
+		const { filename } = obj.message;
+		const backupPath = this.config.backupPath || '/opt/iobroker/backups';
+		const fullPath = path.join(backupPath, filename);
+
+		if (!fs.existsSync(fullPath)) {
+			this.sendTo(obj.from, obj.command, { error: 'Backup-Datei nicht gefunden.' }, obj.callback);
+			return;
+		}
+
+		try {
+			// Temporären Ordner leeren
+			await execAsync(`rm -rf "${this.tempDir}"/*`);
+			
+			// Native tar-Extraktion (schnell und speicherschonend)
+			// Entpackt gezielt nur json/jsonl Dateien aus dem Archiv
+			const extractCmd = `tar -xzf "${fullPath}" -C "${this.tempDir}" --wildcards "*.jsonl" "*.json" 2>/dev/null || true`;
+			await execAsync(extractCmd);
+
+			let scripts = [];
+			const extractedFiles = fs.readdirSync(this.tempDir).filter(f => f.endsWith('.jsonl') || f.endsWith('.json'));
+
+			for (const file of extractedFiles) {
+				const filePath = path.join(this.tempDir, file);
+				const parsedScripts = await this.parseBackupFile(filePath);
+				scripts = scripts.concat(parsedScripts);
+			}
+
+			this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
+		} catch (err) {
+			this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
+		}
+	}
+
+	/**
+	 * Parsen der entpackten json oder jsonl Datei (Analog zur Python-Logik)
+	 */
+	async parseBackupFile(filePath) {
+		const scripts = [];
+		try {
+			const content = fs.readFileSync(filePath, 'utf-8');
+			
+			if (filePath.endsWith('.jsonl')) {
+				const lines = content.split('\n');
+				for (const line of lines) {
+					if (!line.trim()) continue;
+					try {
+						const item = JSON.parse(line);
+						this.processItem(item.id || item._id, item.value || item.doc || item, scripts);
+					} catch (e) { /* ignore parse error for single line */ }
+				}
+			} else {
+				const data = JSON.parse(content);
+				if (data.id && data.value) {
+					// Single object wrapper
+					this.processItem(data.id, data.value, scripts);
+				} else {
+					// Fallback dictionary
+					for (const [k, v] of Object.entries(data)) {
+						this.processItem(k, v, scripts);
+					}
+				}
+			}
+		} catch (err) {
+			this.log.error(`Fehler beim Parsen von ${filePath}: ${err.message}`);
+		}
+		return scripts;
+	}
+
+	/**
+	 * Filtert und formatiert die gefundenen Skript-Objekte
+	 */
+	processItem(key, val, scriptsList) {
+		const keyStr = String(key);
+		if (typeof val === 'object' && val !== null && (val.type === 'script' || keyStr.startsWith('script.js.'))) {
+			if (['channel', 'device', 'folder', 'meta'].includes(val.type)) return;
+			
+			const c = val.common;
+			if (!c || typeof c !== 'object' || (!c.engineType && !c.source)) return;
+
+			const raw = String(c.engineType || 'JS').toLowerCase();
+			const sType = raw.includes('ts') || raw.includes('typescript') ? 'TypeScript' : 
+						  raw.includes('blockly') ? 'Blockly' : 
+						  raw.includes('rules') ? 'Rules' : 'JS';
+			
+			const src = c.source || '';
+			let name = keyStr.split('.').pop();
+			
+			if (c.name) {
+				if (typeof c.name === 'object') {
+					name = c.name.de || c.name.en || Object.values(c.name)[0];
+				} else {
+					name = c.name;
+				}
+			}
+
+			// Den Pfad für die Darstellung im Tree bereinigen
+			const sPath = keyStr.startsWith('script.js.') ? keyStr.substring(10) : keyStr;
+
+			scriptsList.push({ name, path: sPath, type: sType, source: src });
+		}
+	}
+
+	/**
+	 * Schreibt das Skript als '_restored' in die ioBroker-Datenbank
+	 */
+	async handleImportScript(obj) {
+		const { path: scriptPath, source, type, name } = obj.message;
+		
+		if (!scriptPath || !source) {
+			this.sendTo(obj.from, obj.command, { error: 'Fehlende Skriptdaten für den Import.' }, obj.callback);
+			return;
+		}
+
+		try {
+			// Neuer ID-Pfad: script.js.restored.AlterPfad
+			const targetId = `script.js.restored.${scriptPath}`;
+			
+			const engineType = type === 'TypeScript' ? 'TypeScript/ts' :
+							   type === 'Blockly' ? 'Blockly' :
+							   type === 'Rules' ? 'Rules' : 'Javascript/js';
+
+			// Erstellt das Objekt, falls es nicht existiert
+			await this.setForeignObjectNotExistsAsync(targetId, {
+				type: 'script',
+				common: {
+					name: `${name} (Restored)`,
+					engineType: engineType,
+					source: source,
+					enabled: false, // Wichtig: Skript bleibt nach Import deaktiviert
+					engine: 'system.adapter.javascript.0'
+				},
+				native: {}
+			});
+
+			// Überschreibt den Source-Code, falls das _restored Skript schon existierte
+			await this.extendForeignObjectAsync(targetId, {
+				common: {
+					source: source,
+					enabled: false
+				}
+			});
+
+			this.sendTo(obj.from, obj.command, { success: true, targetId }, obj.callback);
+		} catch (err) {
+			this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
+		}
+	}
+
 	onUnload(callback) {
 		try {
-			// Here you must clear all timeouts or intervals that may still be active
-			// clearTimeout(timeout1);
-			// clearTimeout(timeout2);
-			// ...
-			// clearInterval(interval1);
-
-			callback();
-		} catch (error) {
-			this.log.error(`Error during unloading: ${error.message}`);
-			callback();
-		}
-	}
-
-	// If you need to react to object changes, uncomment the following block and the corresponding line in the constructor.
-	// You also need to subscribe to the objects with `this.subscribeObjects`, similar to `this.subscribeStates`.
-	// /**
-	//  * Is called if a subscribed object changes
-	//  * @param {string} id
-	//  * @param {ioBroker.Object | null | undefined} obj
-	//  */
-	// onObjectChange(id, obj) {
-	// 	if (obj) {
-	// 		// The object was changed
-	// 		this.log.info(`object ${id} changed: ${JSON.stringify(obj)}`);
-	// 	} else {
-	// 		// The object was deleted
-	// 		this.log.info(`object ${id} deleted`);
-	// 	}
-	// }
-
-	/**
-	 * Is called if a subscribed state changes
-	 *
-	 * @param {string} id - State ID
-	 * @param {ioBroker.State | null | undefined} state - State object
-	 */
-	onStateChange(id, state) {
-		if (state) {
-			// The state was changed
-			this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
-
-			if (state.ack === false) {
-				// This is a command from the user (e.g., from the UI or other adapter)
-				// and should be processed by the adapter
-				this.log.info(`User command received for ${id}: ${state.val}`);
-
-				// TODO: Add your control logic here
+			// Temporären Ordner beim Beenden aufräumen
+			if (fs.existsSync(this.tempDir)) {
+				exec(`rm -rf "${this.tempDir}"`);
 			}
-		} else {
-			// The object was deleted or the state value has expired
-			this.log.info(`state ${id} deleted`);
+			callback();
+		} catch (e) {
+			callback();
 		}
 	}
-	// If you need to accept messages in your adapter, uncomment the following block and the corresponding line in the constructor.
-	// /**
-	//  * Some message was sent to this instance over message box. Used by email, pushover, text2speech, ...
-	//  * Using this method requires "common.messagebox" property to be set to true in io-package.json
-	//  * @param {ioBroker.Message} obj
-	//  */
-	// onMessage(obj) {
-	// 	if (typeof obj === 'object' && obj.message) {
-	// 		if (obj.command === 'send') {
-	// 			// e.g. send email or pushover or whatever
-	// 			this.log.info('send command');
-
-	// 			// Send response in callback if required
-	// 			if (obj.callback) this.sendTo(obj.from, obj.command, 'Message received', obj.callback);
-	// 		}
-	// 	}
-	// }
 }
 
-if (require.main !== module) {
-	// Export the constructor in compact mode
-	/**
-	 * @param {Partial<utils.AdapterOptions>} [options] - Adapter options
-	 */
-	module.exports = options => new ScriptRestore(options);
-} else {
-	// otherwise start the instance directly
+if (require.main === module) {
 	new ScriptRestore();
+} else {
+	module.exports = (options) => new ScriptRestore(options);
 }

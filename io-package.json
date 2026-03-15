@@ -69,7 +69,8 @@
 		"connectionType": "local",
 		"dataSource": "poll",
 		"adminUI": {
-			"config": "materialize"
+			"config": "materialize",
+			"tab": "materialize"
 		},
 		"dependencies": [
 			{
@@ -83,8 +84,7 @@
 		]
 	},
 	"native": {
-		"option1": true,
-		"option2": "42"
+		"backupPath": "/opt/iobroker/backups"
 	},
 	"objects": [],
 	"instanceObjects": []
