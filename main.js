@@ -22,16 +22,22 @@ class ScriptRestore extends utils.Adapter {
 	}
 
 	async onReady() {
-		this.log.info('Script-Restore Adapter gestartet.');
+		this.log.info('Script-Restore Adapter instanziiert und bereit.');
 		
-		// Temporären Ordner für das Entpacken der Backups anlegen
+		// Temporären Ordner sicherstellen
 		this.tempDir = path.join(utils.getAbsoluteDefaultDataDir(), 'script-restore-tmp');
 		if (!fs.existsSync(this.tempDir)) {
+			this.log.info(`Erstelle temporäres Verzeichnis: ${this.tempDir}`);
 			fs.mkdirSync(this.tempDir, { recursive: true });
 		}
 	}
 
+	/**
+	 * Zentraler Nachrichten-Eingang
+	 */
 	async onMessage(obj) {
+		this.log.info(`[DEBUG] Eingehende Nachricht vom Frontend: ${obj.command}`);
+		
 		if (typeof obj === 'object' && obj.message) {
 			switch (obj.command) {
 				case 'getLocalBackups':
@@ -46,15 +52,20 @@ class ScriptRestore extends utils.Adapter {
 				case 'importScript':
 					await this.handleImportScript(obj);
 					break;
+				default:
+					this.log.warn(`[DEBUG] Unbekannter Befehl erhalten: ${obj.command}`);
 			}
 		}
 	}
 
 	async handleGetLocalBackups(obj) {
 		const backupPath = this.config.backupPath || '/opt/iobroker/backups';
+		this.log.info(`[DEBUG] Suche Backups in Pfad: ${backupPath}`);
+		
 		try {
 			if (!fs.existsSync(backupPath)) {
-				this.sendTo(obj.from, obj.command, { error: `Ordner ${backupPath} nicht gefunden.` }, obj.callback);
+				this.log.error(`[DEBUG] Backup-Pfad existiert nicht: ${backupPath}`);
+				this.sendTo(obj.from, obj.command, { error: `Pfad ${backupPath} nicht gefunden.` }, obj.callback);
 				return;
 			}
 
@@ -64,8 +75,10 @@ class ScriptRestore extends utils.Adapter {
 				(f.endsWith('.tar.gz') || f.endsWith('.gz'))
 			).sort().reverse();
 
+			this.log.info(`[DEBUG] ${backups.length} Backups gefunden.`);
 			this.sendTo(obj.from, obj.command, { backups }, obj.callback);
 		} catch (err) {
+			this.log.error(`[DEBUG] Fehler in handleGetLocalBackups: ${err.message}`);
 			this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
 		}
 	}
@@ -74,12 +87,8 @@ class ScriptRestore extends utils.Adapter {
 		const { filename } = obj.message;
 		const backupPath = this.config.backupPath || '/opt/iobroker/backups';
 		const fullPath = path.join(backupPath, filename);
-
-		if (!fs.existsSync(fullPath)) {
-			this.sendTo(obj.from, obj.command, { error: 'Backup-Datei nicht gefunden.' }, obj.callback);
-			return;
-		}
-
+		
+		this.log.info(`[DEBUG] Verarbeite lokales Backup: ${fullPath}`);
 		await this.extractAndSendScripts(fullPath, obj);
 	}
 
@@ -87,26 +96,29 @@ class ScriptRestore extends utils.Adapter {
 		const { filename, data } = obj.message;
 		const uploadPath = path.join(this.tempDir, 'uploaded_' + filename);
 
+		this.log.info(`[DEBUG] Empfange Upload: ${filename} (${data.length} chars Base64)`);
+
 		try {
-			// Base64 String in echte Datei umwandeln und speichern
 			const buffer = Buffer.from(data, 'base64');
 			fs.writeFileSync(uploadPath, buffer);
+			this.log.info(`[DEBUG] Datei temporär gespeichert: ${uploadPath}`);
 
-			// Auslesen und ans Frontend senden
 			await this.extractAndSendScripts(uploadPath, obj);
 
-			// Nach dem Auslesen die hochgeladene Datei wieder löschen
 			if (fs.existsSync(uploadPath)) {
 				fs.unlinkSync(uploadPath);
 			}
 		} catch (err) {
+			this.log.error(`[DEBUG] Fehler beim Verarbeiten des Uploads: ${err.message}`);
 			this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
 		}
 	}
 
 	async extractAndSendScripts(archivePath, obj) {
 		try {
-			// Temporären Ordner leeren
+			this.log.info(`[DEBUG] Starte Extraktion aus ${archivePath}`);
+			
+			// Temp-Inhalt leeren
 			await execAsync(`rm -rf "${this.tempDir}"/*.jsonl "${this.tempDir}"/*.json`);
 			
 			const extractCmd = `tar -xzf "${archivePath}" -C "${this.tempDir}" --wildcards "*.jsonl" "*.json" 2>/dev/null || true`;
@@ -114,46 +126,40 @@ class ScriptRestore extends utils.Adapter {
 
 			let scripts = [];
 			const extractedFiles = fs.readdirSync(this.tempDir).filter(f => f.endsWith('.jsonl') || f.endsWith('.json'));
+			
+			this.log.info(`[DEBUG] ${extractedFiles.length} JSON-Dateien im Archiv gefunden.`);
 
 			for (const file of extractedFiles) {
 				const filePath = path.join(this.tempDir, file);
-				const parsedScripts = await this.parseBackupFile(filePath);
-				scripts = scripts.concat(parsedScripts);
-			}
-
-			this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
-		} catch (err) {
-			this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
-		}
-	}
-
-	async parseBackupFile(filePath) {
-		const scripts = [];
-		try {
-			const content = fs.readFileSync(filePath, 'utf-8');
-			if (filePath.endsWith('.jsonl')) {
-				const lines = content.split('\n');
-				for (const line of lines) {
-					if (!line.trim()) continue;
-					try {
-						const item = JSON.parse(line);
-						this.processItem(item.id || item._id, item.value || item.doc || item, scripts);
-					} catch (e) {}
-				}
-			} else {
-				const data = JSON.parse(content);
-				if (data.id && data.value) {
-					this.processItem(data.id, data.value, scripts);
+				const content = fs.readFileSync(filePath, 'utf-8');
+				
+				if (file.endsWith('.jsonl')) {
+					const lines = content.split('\n');
+					for (const line of lines) {
+						if (!line.trim()) continue;
+						try {
+							const item = JSON.parse(line);
+							this.processItem(item.id || item._id, item.value || item.doc || item, scripts);
+						} catch (e) {}
+					}
 				} else {
-					for (const [k, v] of Object.entries(data)) {
-						this.processItem(k, v, scripts);
+					const data = JSON.parse(content);
+					if (data.id && data.value) {
+						this.processItem(data.id, data.value, scripts);
+					} else {
+						for (const [k, v] of Object.entries(data)) {
+							this.processItem(k, v, scripts);
+						}
 					}
 				}
 			}
+
+			this.log.info(`[DEBUG] Extraktion fertig. ${scripts.length} Skripte erkannt.`);
+			this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
 		} catch (err) {
-			this.log.error(`Fehler beim Parsen von ${filePath}: ${err.message}`);
+			this.log.error(`[DEBUG] Extraktionsfehler: ${err.message}`);
+			this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
 		}
-		return scripts;
 	}
 
 	processItem(key, val, scriptsList) {
@@ -187,10 +193,7 @@ class ScriptRestore extends utils.Adapter {
 
 	async handleImportScript(obj) {
 		const { path: scriptPath, source, type, name } = obj.message;
-		if (!scriptPath || !source) {
-			this.sendTo(obj.from, obj.command, { error: 'Fehlende Skriptdaten für den Import.' }, obj.callback);
-			return;
-		}
+		this.log.info(`[DEBUG] Importiere Skript nach: script.js.restored.${scriptPath}`);
 
 		try {
 			const targetId = `script.js.restored.${scriptPath}`;
@@ -214,17 +217,22 @@ class ScriptRestore extends utils.Adapter {
 				common: { source: source, enabled: false }
 			});
 
-			this.sendTo(obj.from, obj.command, { success: true, targetId }, obj.callback);
+			this.sendTo(obj.from, obj.command, { success: true }, obj.callback);
 		} catch (err) {
+			this.log.error(`[DEBUG] Importfehler: ${err.message}`);
 			this.sendTo(obj.from, obj.command, { error: err.message }, obj.callback);
 		}
 	}
 
 	onUnload(callback) {
 		try {
-			if (fs.existsSync(this.tempDir)) exec(`rm -rf "${this.tempDir}"`);
+			if (fs.existsSync(this.tempDir)) {
+				exec(`rm -rf "${this.tempDir}"`);
+			}
 			callback();
-		} catch (e) { callback(); }
+		} catch (e) {
+			callback();
+		}
 	}
 }
 
