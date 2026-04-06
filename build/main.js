@@ -74,9 +74,10 @@ class ScriptRestore extends utils.Adapter {
     try {
       const rawEntries = await fs.readdir(backupPath, { withFileTypes: true, encoding: "utf8" });
       const entries = rawEntries;
-      const files = entries.filter(
-        (e) => e.isFile() && (String(e.name).endsWith(".tar.gz") || String(e.name).endsWith(".tar") || String(e.name).endsWith(".json") || String(e.name).endsWith(".jsonl"))
-      ).map((e) => String(e.name)).sort().reverse();
+      const files = entries.filter((e) => {
+        const n = String(e.name);
+        return e.isFile() && (n.startsWith("iobroker") || n.startsWith("javascript")) && (n.endsWith(".tar.gz") || n.endsWith(".tar") || n.endsWith(".json") || n.endsWith(".jsonl"));
+      }).map((e) => String(e.name)).sort().reverse();
       this.sendTo(obj.from, obj.command, { files, path: backupPath }, obj.callback);
     } catch (e) {
       this.sendTo(
