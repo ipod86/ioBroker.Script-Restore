@@ -416,14 +416,26 @@
 			if (e.data.themeType !== undefined) applyTheme(e.data.themeType === 'dark');
 		});
 
-		// Observe parent body for class/attribute changes (live theme switch)
+		// Observe parent body for class/attribute/style changes (DOM-based theme switch)
 		try {
 			const pb = window.parent.document.body;
 			const ph = window.parent.document.documentElement;
 			const obs = new MutationObserver(() => detectTheme());
-			obs.observe(pb, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-			obs.observe(ph, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+			obs.observe(pb, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] });
+			obs.observe(ph, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] });
 		} catch(e) {}
+
+		// localStorage change (ioBroker admin v5+ stores theme there)
+		window.addEventListener('storage', function(e) {
+			if (e.key === 'App.theme' || e.key === 'themeType' || e.key === 'iobroker.ui.theme') {
+				detectTheme();
+			}
+		});
+
+		// Re-detect when tab becomes visible again (user switched tab/window)
+		document.addEventListener('visibilitychange', function() {
+			if (document.visibilityState === 'visible') detectTheme();
+		});
 
 		let socket = null;
 		let socketReady = false;
