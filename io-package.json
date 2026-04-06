@@ -55,9 +55,9 @@
 			"license": "MIT"
 		},
 		"platform": "Javascript/Node.js",
-		"icon": "script-restore.png",
+		"icon": "script-restore.svg",
 		"enabled": true,
-		"extIcon": "https://raw.githubusercontent.com/ipod86/ioBroker.script-restore/main/admin/script-restore.png",
+		"extIcon": "https://raw.githubusercontent.com/ipod86/ioBroker.script-restore/main/admin/script-restore.svg",
 		"readme": "https://github.com/ipod86/ioBroker.script-restore/blob/main/README.md",
 		"loglevel": "info",
 		"tier": 3,
