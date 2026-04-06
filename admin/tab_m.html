@@ -439,24 +439,87 @@
 			el.className = 'status-msg' + (type ? ' ' + type : '');
 		}
 
+		// === Browser-side JSON/JSONL parser (same logic as adapter backend) ===
+		function processItem(key, val, scripts) {
+			if (!key || typeof val !== 'object' || val === null) return;
+			const v = val;
+			if (['channel','device','folder','meta'].includes(v.type)) return;
+			if (v.type !== 'script' && !key.startsWith('script.js.')) return;
+			const c = v.common;
+			if (!c || (c.engineType === undefined && c.source === undefined)) return;
+			const et = (typeof c.engineType === 'string' ? c.engineType : 'JS').toLowerCase();
+			let stype = 'JS';
+			if (et.includes('ts') || et.includes('typescript')) stype = 'TypeScript';
+			else if (et.includes('blockly')) stype = 'Blockly';
+			else if (et.includes('rules')) stype = 'Rules';
+			let name;
+			const no = c.name;
+			if (typeof no === 'object' && no !== null) name = no.de || no.en || Object.values(no)[0] || key.split('.').pop();
+			else name = (typeof no === 'string' && no) ? no : (key.split('.').pop() || key);
+			scripts.push({ name, path: key.startsWith('script.js.') ? key.slice(10) : key, type: stype, source: typeof c.source === 'string' ? c.source : '' });
+		}
+
+		function parseJsonContent(text, filename) {
+			const scripts = [];
+			const trimmed = text.trimStart();
+			const isJsonl = filename.endsWith('.jsonl') || (trimmed.startsWith('{') && !trimmed.startsWith('{\n  "') && trimmed.includes('\n{'));
+			if (isJsonl) {
+				for (const line of text.split('\n')) {
+					const l = line.trim(); if (!l) continue;
+					try { const item = JSON.parse(l); processItem(item._id || item.id, item.value || item.doc || item, scripts); } catch {}
+				}
+			} else {
+				const data = JSON.parse(text);
+				for (const [k, v] of Object.entries(data)) processItem(k, v, scripts);
+			}
+			return scripts.sort((a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+		}
+
 		// === File Upload ===
 		document.getElementById('fileInput').addEventListener('change', function() {
 			if (!this.files || !this.files.length) return;
 			const file = this.files[0];
-			const MAX_MB = 50;
-			if (file.size > MAX_MB * 1024 * 1024) {
-				setStatus('Datei zu groß (max. ' + MAX_MB + ' MB). Bitte Datei in den Backup-Ordner legen und über "Lokale Backups" laden.', 'error');
+			const name = file.name.toLowerCase();
+			const isArchive = name.endsWith('.tar.gz') || name.endsWith('.tgz') || name.endsWith('.tar');
+
+			// JSON/JSONL: parse directly in browser, no server needed
+			if (!isArchive) {
+				showLoader('Lese Datei...');
+				const reader = new FileReader();
+				reader.onprogress = ev => { if (ev.lengthComputable) updateProgress(Math.round(ev.loaded / ev.total * 90)); };
+				reader.onload = function() {
+					try {
+						updateProgress(100);
+						const scripts = parseJsonContent(reader.result, file.name);
+						hideLoader();
+						loadScripts(scripts);
+						setStatus(scripts.length + ' Skripte geladen aus: ' + file.name, 'success');
+					} catch(e) {
+						hideLoader();
+						setStatus('Fehler beim Parsen: ' + e.message, 'error');
+					}
+				};
+				reader.onerror = () => { hideLoader(); setStatus('Fehler beim Lesen der Datei.', 'error'); };
+				reader.readAsText(file, 'utf-8');
 				this.value = '';
 				return;
 			}
-			showLoader('Lade Backup hoch...');
+
+			// Archive: send to adapter (max 50 MB)
+			const MAX_MB = 50;
+			if (file.size > MAX_MB * 1024 * 1024) {
+				setStatus('Archiv zu groß (max. ' + MAX_MB + ' MB). Bitte in den Backup-Ordner legen und über "Lokale Backups" öffnen.', 'error');
+				this.value = '';
+				return;
+			}
+			showLoader('Lese Archiv...');
 			const reader = new FileReader();
 			reader.onprogress = function(ev) {
 				if (ev.lengthComputable) updateProgress(Math.round(ev.loaded / ev.total * 80));
 			};
 			reader.onload = function() {
 				updateProgress(90);
-				showLoaderSpinner('Verarbeite Daten...');
+				showLoaderSpinner('Verarbeite Archiv...');
 				const base64 = reader.result.split(',')[1];
 				sendTo('parseUploadedFile', { name: file.name, data: base64 }, function(result) {
 					hideLoader();
