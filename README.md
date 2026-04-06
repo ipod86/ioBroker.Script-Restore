@@ -76,6 +76,7 @@ The archive is parsed entirely in the browser — no files are written to disk d
 	### **WORK IN PROGRESS**
 -->
 ### **WORK IN PROGRESS**
+* (ipod86) update README, fix SVG icon dimensions, add full language translations
 
 ### 0.0.1 (2026-04-06)
 * (ipod86) initial release
