@@ -5,13 +5,13 @@
  * MIT License
  */
 
-import type { Dirent } from "fs";
+import type { Dirent } from "node:fs";
 import * as utils from "@iobroker/adapter-core";
 import * as fs from "fs/promises";
-import * as path from "path";
-import * as os from "os";
-import { exec } from "child_process";
-import { promisify } from "util";
+import * as path from "node:path";
+import * as os from "node:os";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
 
