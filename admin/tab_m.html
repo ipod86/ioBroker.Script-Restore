@@ -352,7 +352,7 @@
 				</button>
 				<div class="dropdown-menu" id="webdavMenu"></div>
 			</div>
-			<div id="httpInputWrapper" style="display:none; display:flex; align-items:center; gap:6px;">
+			<div id="httpInputWrapper" style="display:none; align-items:center; gap:6px;">
 				<input type="text" id="httpUrlInput" placeholder="https://..." style="padding:0.35rem 0.6rem; border:1px solid #ced4da; border-radius:4px; font-size:0.875rem; min-width:260px; font-family:inherit;">
 				<button class="btn btn-outline" onclick="loadHttpUrl()">🌐 URL laden</button>
 			</div>
@@ -768,7 +768,7 @@
 				if (result.smbEnabled) document.getElementById('smbDropdown').style.display = '';
 				if (result.sftpEnabled) document.getElementById('sftpDropdown').style.display = '';
 				if (result.webdavEnabled) document.getElementById('webdavDropdown').style.display = '';
-				if (result.httpEnabled) document.getElementById('httpInputWrapper').style.display = 'flex';
+				if (result.httpEnabled) { document.getElementById('httpInputWrapper').style.display = 'flex'; }
 			});
 		}
 		setTimeout(function() { loadSourceConfig(0); }, 300);
