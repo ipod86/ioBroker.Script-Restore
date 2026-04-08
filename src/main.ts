@@ -70,6 +70,12 @@ class ScriptRestore extends utils.Adapter {
 					obj.callback,
 				);
 				break;
+			case "testFtp":
+				await this.handleTestFtp(obj);
+				break;
+			case "testSmb":
+				await this.handleTestSmb(obj);
+				break;
 			case "listFtpFiles":
 					await this.handleListFtpFiles(obj);
 					break;
@@ -138,6 +144,48 @@ class ScriptRestore extends utils.Adapter {
 			this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
 		} catch (e) {
 			this.sendTo(obj.from, obj.command, { error: (e as Error).message }, obj.callback);
+		}
+	}
+
+	// ─── Tests ───────────────────────────────────────────────────────────────
+
+	private async handleTestFtp(obj: ioBroker.Message): Promise<void> {
+		const msg = obj.message as { host: string; port: number; user: string; password: string; path: string; secure: boolean };
+		const client = new ftp.Client();
+		client.ftp.verbose = false;
+		try {
+			await client.access({
+				host: msg.host,
+				port: msg.port || 21,
+				user: msg.user || "anonymous",
+				password: msg.password || "",
+				secure: msg.secure || false,
+			});
+			const list = await client.list(msg.path || "/");
+			const count = list.filter(i => i.type === ftp.FileType.File).length;
+			this.sendTo(obj.from, obj.command, { success: true, message: `Verbunden! ${count} Datei(en) gefunden in: ${msg.path || "/"}` }, obj.callback);
+		} catch (e) {
+			this.sendTo(obj.from, obj.command, { success: false, message: (e as Error).message }, obj.callback);
+		} finally {
+			client.close();
+		}
+	}
+
+	private async handleTestSmb(obj: ioBroker.Message): Promise<void> {
+		const msg = obj.message as { host: string; share: string; path: string; user: string; password: string; domain: string };
+		const smb = new SMB2({
+			share: `\\\\${msg.host}\\${msg.share}`,
+			username: msg.user || "",
+			password: msg.password || "",
+			domain: msg.domain || "",
+		});
+		try {
+			const files = await this.smbReaddir(smb, msg.path || "");
+			this.sendTo(obj.from, obj.command, { success: true, message: `Verbunden! ${files.length} Einträge in: \\\\${msg.host}\\${msg.share}${msg.path ? "\\" + msg.path : ""}` }, obj.callback);
+		} catch (e) {
+			this.sendTo(obj.from, obj.command, { success: false, message: (e as Error).message }, obj.callback);
+		} finally {
+			smb.disconnect();
 		}
 	}
 

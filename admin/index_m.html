@@ -59,6 +59,57 @@
 			$('#smbDetails').toggle(smbEnabled);
 			if (M) M.updateTextFields();
 		}
+
+		function getAdapterInstance() {
+			var params = new URLSearchParams(window.location.search);
+			var id = params.get('id') || '';
+			var m = id.match(/\.(\d+)$/);
+			return m ? m[1] : '0';
+		}
+
+		function testConnection(type) {
+			var resultEl = document.getElementById(type + 'TestResult');
+			var btn = document.getElementById(type + 'TestBtn');
+			resultEl.style.display = 'none';
+			btn.disabled = true;
+			btn.textContent = '⏳ ...';
+
+			var data = {};
+			if (type === 'ftp') {
+				data = {
+					host: $('#ftpHost').val(),
+					port: parseInt($('#ftpPort').val(), 10) || 21,
+					user: $('#ftpUser').val(),
+					password: $('#ftpPassword').val(),
+					path: $('#ftpPath').val() || '/',
+					secure: $('#ftpSecure').prop('checked'),
+				};
+			} else {
+				data = {
+					host: $('#smbHost').val(),
+					share: $('#smbShare').val(),
+					path: $('#smbPath').val(),
+					user: $('#smbUser').val(),
+					password: $('#smbPassword').val(),
+					domain: $('#smbDomain').val(),
+				};
+			}
+
+			var inst = 'script-restore.' + getAdapterInstance();
+			var cmd = type === 'ftp' ? 'testFtp' : 'testSmb';
+			socket.emit('sendTo', inst, cmd, data, function (result) {
+				btn.disabled = false;
+				btn.textContent = _('testConnection');
+				resultEl.style.display = 'inline';
+				if (result && result.success) {
+					resultEl.style.color = '#388e3c';
+					resultEl.textContent = '✓ ' + result.message;
+				} else {
+					resultEl.style.color = '#d32f2f';
+					resultEl.textContent = '✗ ' + (result && result.message ? result.message : 'Fehler');
+				}
+			});
+		}
 	</script>
 
 </head>
@@ -128,6 +179,14 @@
 					<label for="ftpPath" class="translate">ftpPath</label>
 				</div>
 			</div>
+			<div class="row" style="margin-top: 4px;">
+				<div class="col s12">
+					<button id="ftpTestBtn" class="btn btn-small waves-effect waves-light" onclick="testConnection('ftp')" type="button">
+						<span class="translate">testConnection</span>
+					</button>
+					<span id="ftpTestResult" style="display:none; margin-left:12px; font-size:0.9rem; font-weight:500;"></span>
+				</div>
+			</div>
 		</div>
 
 		<!-- SMB Section -->
@@ -144,6 +203,11 @@
 		</div>
 		<div id="smbDetails" style="display:none;">
 			<div class="row">
+				<div class="col s12">
+					<span class="translate helper-text" style="color:#e65100; font-size:0.82rem;">smbVersionNote</span>
+				</div>
+			</div>
+			<div class="row" style="margin-top: 8px;">
 				<div class="input-field col s12 m5 l4">
 					<input class="value" id="smbHost" type="text" placeholder="192.168.1.100">
 					<label for="smbHost" class="translate">smbHost</label>
@@ -169,6 +233,14 @@
 				<div class="input-field col s12 m4 l3">
 					<input class="value" id="smbDomain" type="text" placeholder="">
 					<label for="smbDomain" class="translate">smbDomain</label>
+				</div>
+			</div>
+			<div class="row" style="margin-top: 4px;">
+				<div class="col s12">
+					<button id="smbTestBtn" class="btn btn-small waves-effect waves-light" onclick="testConnection('smb')" type="button">
+						<span class="translate">testConnection</span>
+					</button>
+					<span id="smbTestResult" style="display:none; margin-left:12px; font-size:0.9rem; font-weight:500;"></span>
 				</div>
 			</div>
 		</div>
