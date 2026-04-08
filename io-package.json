@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "script-restore",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "news": {
+      "0.0.10": {
+        "en": "Fix jsonConfig responsive sizes (E5509); trim news to 7 entries; add Dependabot cooldown",
+        "de": "jsonConfig Responsive-Größen korrigiert (E5509); News auf 7 Einträge reduziert; Dependabot-Cooldown ergänzt",
+        "ru": "Исправлены размеры jsonConfig; сокращены новости до 7; добавлен cooldown Dependabot",
+        "pt": "Corrigidos tamanhos responsivos jsonConfig; notícias reduzidas a 7; cooldown Dependabot adicionado",
+        "nl": "jsonConfig responsieve maten gecorrigeerd; nieuws beperkt tot 7; Dependabot cooldown toegevoegd",
+        "fr": "Correction tailles responsives jsonConfig; actualités réduites à 7; cooldown Dependabot ajouté",
+        "it": "Corrette dimensioni responsive jsonConfig; notizie ridotte a 7; aggiunto cooldown Dependabot",
+        "es": "Corregidos tamaños responsivos jsonConfig; noticias reducidas a 7; añadido cooldown Dependabot",
+        "pl": "Poprawiono rozmiary responsywne jsonConfig; aktualności ograniczone do 7; dodano cooldown Dependabot",
+        "uk": "Виправлено розміри jsonConfig; новини скорочено до 7; додано cooldown Dependabot",
+        "zh-cn": "修复 jsonConfig 响应式尺寸；新闻条目减少至 7 条；添加 Dependabot 冷却时间"
+      },
       "0.0.9": {
         "en": "Fix jsonConfig: add responsive size attributes, i18n support, remove outdated admin files",
         "de": "jsonConfig: Responsive Size-Attribute ergänzt, i18n-Unterstützung, veraltete Admin-Dateien entfernt",
@@ -80,32 +93,6 @@
         "pl": "Ulepszone wykrywanie ciemnego motywu: przełączanie na żywo przez MutationObserver i zdarzenia storage",
         "uk": "Покращено визначення темної теми: перемикання в реальному часі через MutationObserver та події сховища",
         "zh-cn": "改进暗色主题检测：通过 MutationObserver 和存储事件实现实时切换"
-      },
-      "0.0.3": {
-        "en": "Add dark theme support for admin tab UI",
-        "de": "Dark-Theme-Unterstützung für die Admin-Tab-Oberfläche hinzugefügt",
-        "ru": "Добавлена поддержка тёмной темы для вкладки администратора",
-        "pt": "Adicionado suporte ao tema escuro para a interface da aba admin",
-        "nl": "Ondersteuning voor donker thema toegevoegd aan de admin-tab UI",
-        "fr": "Ajout du support du thème sombre pour l'interface de l'onglet admin",
-        "it": "Aggiunto supporto al tema scuro per l'interfaccia della scheda admin",
-        "es": "Añadido soporte de tema oscuro para la interfaz de la pestaña admin",
-        "pl": "Dodano obsługę ciemnego motywu dla interfejsu karty administratora",
-        "uk": "Додано підтримку темної теми для інтерфейсу вкладки адміністратора",
-        "zh-cn": "为管理员选项卡界面添加暗色主题支持"
-      },
-      "0.0.1": {
-        "en": "Initial release",
-        "de": "Erstveröffentlichung",
-        "ru": "Начальная версия",
-        "pt": "Versão inicial",
-        "nl": "Eerste versie",
-        "fr": "Version initiale",
-        "it": "Versione iniziale",
-        "es": "Versión inicial",
-        "pl": "Pierwsze wydanie",
-        "uk": "Початкова версія",
-        "zh-cn": "首次出版"
       }
     },
     "titleLang": {

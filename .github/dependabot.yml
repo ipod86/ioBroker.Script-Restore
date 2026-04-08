@@ -11,6 +11,8 @@ updates:
     assignees:
       - ipod86
     versioning-strategy: increase
+    cooldown:
+      default: 7
 
   - package-ecosystem: github-actions
     directory: "/"
