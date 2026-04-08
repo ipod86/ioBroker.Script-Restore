@@ -14,6 +14,9 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import * as ftp from "basic-ftp";
 import { Writable } from "node:stream";
+import * as https from "node:https";
+import * as http from "node:http";
+import SftpClient from "ssh2-sftp-client";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const SMB2 = require("@marsaud/smb2");
@@ -70,9 +73,36 @@ class ScriptRestore extends utils.Adapter {
 							localEnabled: this.config.localEnabled !== false,
 							ftpEnabled: !!this.config.ftpEnabled,
 							smbEnabled: !!this.config.smbEnabled,
+							httpEnabled: !!this.config.httpEnabled,
+							sftpEnabled: !!this.config.sftpEnabled,
+							webdavEnabled: !!this.config.webdavEnabled,
 						},
 						obj.callback,
 					);
+					break;
+				case "suggestBackupPath":
+					await this.handleSuggestBackupPath(obj);
+					break;
+				case "parseHttpUrl":
+					await this.handleParseHttpUrl(obj);
+					break;
+				case "testSftp":
+					await this.handleTestSftp(obj);
+					break;
+				case "listSftpFiles":
+					await this.handleListSftpFiles(obj);
+					break;
+				case "parseSftpFile":
+					await this.handleParseSftpFile(obj);
+					break;
+				case "testWebdav":
+					await this.handleTestWebdav(obj);
+					break;
+				case "listWebdavFiles":
+					await this.handleListWebdavFiles(obj);
+					break;
+				case "parseWebdavFile":
+					await this.handleParseWebdavFile(obj);
 					break;
 				case "testFtp":
 					await this.handleTestFtp(obj);
@@ -541,6 +571,222 @@ class ScriptRestore extends utils.Adapter {
 			type: stype,
 			source: typeof c.source === "string" ? c.source : "",
 		});
+	}
+
+	// ─── Suggest backup path ─────────────────────────────────────────────────
+
+	private async handleSuggestBackupPath(obj: ioBroker.Message): Promise<void> {
+		const candidates = ["/opt/iobroker/backups", "/root/backups"];
+		// Check if backupPC or iobroker-backup adapter is configured
+		try {
+			const backupObj = (await this.getForeignObjectAsync("system.adapter.backitup.0")) as ioBroker.Object | null;
+			if (backupObj?.native?.defaultFolder) {
+				candidates.unshift(backupObj.native.defaultFolder as string);
+			}
+		} catch {
+			// adapter not installed
+		}
+		for (const p of candidates) {
+			try {
+				await fs.access(p);
+				this.sendTo(obj.from, obj.command, { path: p }, obj.callback);
+				return;
+			} catch {
+				// not accessible
+			}
+		}
+		this.sendTo(obj.from, obj.command, { path: null }, obj.callback);
+	}
+
+	// ─── HTTP ────────────────────────────────────────────────────────────────
+
+	private downloadUrl(url: string): Promise<Buffer> {
+		return new Promise((resolve, reject) => {
+			const mod = url.startsWith("https") ? https : http;
+			mod.get(url, res => {
+				if (res.statusCode !== 200) {
+					reject(new Error(`HTTP ${res.statusCode}`));
+					return;
+				}
+				const chunks: Buffer[] = [];
+				res.on("data", (c: Buffer) => chunks.push(c));
+				res.on("end", () => resolve(Buffer.concat(chunks)));
+				res.on("error", reject);
+			}).on("error", reject);
+		});
+	}
+
+	private async handleParseHttpUrl(obj: ioBroker.Message): Promise<void> {
+		if (!this.config.httpEnabled) {
+			this.sendTo(obj.from, obj.command, { error: "HTTP not enabled" }, obj.callback);
+			return;
+		}
+		const msg = obj.message as { url: string };
+		const filename = msg.url.split("/").pop() || "backup";
+		try {
+			const buf = await this.downloadUrl(msg.url);
+			const scripts = await this.parseBuffer(buf, filename);
+			this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
+		} catch (e) {
+			this.sendTo(obj.from, obj.command, { error: (e as Error).message }, obj.callback);
+		}
+	}
+
+	// ─── SFTP ────────────────────────────────────────────────────────────────
+
+	private async handleTestSftp(obj: ioBroker.Message): Promise<void> {
+		const msg = obj.message as { host: string; port: number; user: string; password: string; path: string };
+		const sftp = new SftpClient();
+		try {
+			await sftp.connect({ host: msg.host, port: msg.port || 22, username: msg.user, password: msg.password });
+			const list = await sftp.list(msg.path || "/");
+			const count = list.filter(i => i.type === "-").length;
+			this.sendTo(
+				obj.from,
+				obj.command,
+				{ success: true, message: `Verbunden! ${count} Datei(en) in: ${msg.path || "/"}` },
+				obj.callback,
+			);
+		} catch (e) {
+			this.sendTo(obj.from, obj.command, { success: false, message: (e as Error).message }, obj.callback);
+		} finally {
+			await sftp.end();
+		}
+	}
+
+	private async handleListSftpFiles(obj: ioBroker.Message): Promise<void> {
+		if (!this.config.sftpEnabled) {
+			this.sendTo(obj.from, obj.command, { error: "SFTP not enabled" }, obj.callback);
+			return;
+		}
+		const sftp = new SftpClient();
+		try {
+			await sftp.connect({
+				host: this.config.sftpHost,
+				port: this.config.sftpPort || 22,
+				username: this.config.sftpUser,
+				password: this.config.sftpPassword,
+			});
+			const remotePath = this.config.sftpPath || "/";
+			const list = await sftp.list(remotePath);
+			const files = list
+				.filter(i => {
+					const n = i.name;
+					return (
+						i.type === "-" &&
+						(n.startsWith("iobroker") || n.startsWith("javascript")) &&
+						(n.endsWith(".tar.gz") || n.endsWith(".tar") || n.endsWith(".json") || n.endsWith(".jsonl"))
+					);
+				})
+				.map(i => i.name)
+				.sort()
+				.reverse();
+			this.sendTo(obj.from, obj.command, { files, path: remotePath }, obj.callback);
+		} catch (e) {
+			this.sendTo(obj.from, obj.command, { error: (e as Error).message }, obj.callback);
+		} finally {
+			await sftp.end();
+		}
+	}
+
+	private async handleParseSftpFile(obj: ioBroker.Message): Promise<void> {
+		if (!this.config.sftpEnabled) {
+			this.sendTo(obj.from, obj.command, { error: "SFTP not enabled" }, obj.callback);
+			return;
+		}
+		const msg = obj.message as { filename: string };
+		const filename = path.basename(msg.filename);
+		const remotePath = path.posix.join(this.config.sftpPath || "/", filename);
+		const sftp = new SftpClient();
+		try {
+			await sftp.connect({
+				host: this.config.sftpHost,
+				port: this.config.sftpPort || 22,
+				username: this.config.sftpUser,
+				password: this.config.sftpPassword,
+			});
+			const buf = (await sftp.get(remotePath)) as Buffer;
+			const scripts = await this.parseBuffer(buf, filename);
+			this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
+		} catch (e) {
+			this.sendTo(obj.from, obj.command, { error: (e as Error).message }, obj.callback);
+		} finally {
+			await sftp.end();
+		}
+	}
+
+	// ─── WebDAV ──────────────────────────────────────────────────────────────
+
+	private async handleTestWebdav(obj: ioBroker.Message): Promise<void> {
+		const msg = obj.message as { url: string; user: string; password: string; path: string };
+		try {
+			const { createClient: createWebdavClient } = await import("webdav");
+			const client = createWebdavClient(msg.url, { username: msg.user, password: msg.password });
+			const list = await client.getDirectoryContents(msg.path || "/");
+			const arr = Array.isArray(list) ? list : (list as { data: unknown[] }).data;
+			this.sendTo(
+				obj.from,
+				obj.command,
+				{ success: true, message: `Verbunden! ${arr.length} Einträge in: ${msg.path || "/"}` },
+				obj.callback,
+			);
+		} catch (e) {
+			this.sendTo(obj.from, obj.command, { success: false, message: (e as Error).message }, obj.callback);
+		}
+	}
+
+	private async handleListWebdavFiles(obj: ioBroker.Message): Promise<void> {
+		if (!this.config.webdavEnabled) {
+			this.sendTo(obj.from, obj.command, { error: "WebDAV not enabled" }, obj.callback);
+			return;
+		}
+		try {
+			const { createClient: createWebdavClient } = await import("webdav");
+			const client = createWebdavClient(this.config.webdavUrl, {
+				username: this.config.webdavUser,
+				password: this.config.webdavPassword,
+			});
+			const remotePath = this.config.webdavPath || "/";
+			const list = await client.getDirectoryContents(remotePath);
+			const arr = Array.isArray(list) ? list : (list as { data: { basename: string; type: string }[] }).data;
+			const files = arr
+				.filter((i: { basename: string; type: string }) => {
+					const n = i.basename;
+					return (
+						i.type === "file" &&
+						(n.startsWith("iobroker") || n.startsWith("javascript")) &&
+						(n.endsWith(".tar.gz") || n.endsWith(".tar") || n.endsWith(".json") || n.endsWith(".jsonl"))
+					);
+				})
+				.map((i: { basename: string }) => i.basename)
+				.sort()
+				.reverse();
+			this.sendTo(obj.from, obj.command, { files, path: remotePath }, obj.callback);
+		} catch (e) {
+			this.sendTo(obj.from, obj.command, { error: (e as Error).message }, obj.callback);
+		}
+	}
+
+	private async handleParseWebdavFile(obj: ioBroker.Message): Promise<void> {
+		if (!this.config.webdavEnabled) {
+			this.sendTo(obj.from, obj.command, { error: "WebDAV not enabled" }, obj.callback);
+			return;
+		}
+		const msg = obj.message as { filename: string };
+		const filename = path.basename(msg.filename);
+		try {
+			const { createClient: createWebdavClient } = await import("webdav");
+			const client = createWebdavClient(this.config.webdavUrl, {
+				username: this.config.webdavUser,
+				password: this.config.webdavPassword,
+			});
+			const remotePath = (this.config.webdavPath ? `${this.config.webdavPath}/` : "/") + filename;
+			const buf = Buffer.from((await client.getFileContents(remotePath)) as ArrayBuffer);
+			const scripts = await this.parseBuffer(buf, filename);
+			this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
+		} catch (e) {
+			this.sendTo(obj.from, obj.command, { error: (e as Error).message }, obj.callback);
+		}
 	}
 }
 

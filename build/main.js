@@ -29,6 +29,9 @@ var import_node_child_process = require("node:child_process");
 var import_node_util = require("node:util");
 var ftp = __toESM(require("basic-ftp"));
 var import_node_stream = require("node:stream");
+var https = __toESM(require("node:https"));
+var http = __toESM(require("node:http"));
+var import_ssh2_sftp_client = __toESM(require("ssh2-sftp-client"));
 const SMB2 = require("@marsaud/smb2");
 const execAsync = (0, import_node_util.promisify)(import_node_child_process.exec);
 class ScriptRestore extends utils.Adapter {
@@ -69,10 +72,37 @@ class ScriptRestore extends utils.Adapter {
             {
               localEnabled: this.config.localEnabled !== false,
               ftpEnabled: !!this.config.ftpEnabled,
-              smbEnabled: !!this.config.smbEnabled
+              smbEnabled: !!this.config.smbEnabled,
+              httpEnabled: !!this.config.httpEnabled,
+              sftpEnabled: !!this.config.sftpEnabled,
+              webdavEnabled: !!this.config.webdavEnabled
             },
             obj.callback
           );
+          break;
+        case "suggestBackupPath":
+          await this.handleSuggestBackupPath(obj);
+          break;
+        case "parseHttpUrl":
+          await this.handleParseHttpUrl(obj);
+          break;
+        case "testSftp":
+          await this.handleTestSftp(obj);
+          break;
+        case "listSftpFiles":
+          await this.handleListSftpFiles(obj);
+          break;
+        case "parseSftpFile":
+          await this.handleParseSftpFile(obj);
+          break;
+        case "testWebdav":
+          await this.handleTestWebdav(obj);
+          break;
+        case "listWebdavFiles":
+          await this.handleListWebdavFiles(obj);
+          break;
+        case "parseWebdavFile":
+          await this.handleParseWebdavFile(obj);
           break;
         case "testFtp":
           await this.handleTestFtp(obj);
@@ -467,6 +497,191 @@ class ScriptRestore extends utils.Adapter {
       type: stype,
       source: typeof c.source === "string" ? c.source : ""
     });
+  }
+  // ─── Suggest backup path ─────────────────────────────────────────────────
+  async handleSuggestBackupPath(obj) {
+    var _a;
+    const candidates = ["/opt/iobroker/backups", "/root/backups"];
+    try {
+      const backupObj = await this.getForeignObjectAsync("system.adapter.backitup.0");
+      if ((_a = backupObj == null ? void 0 : backupObj.native) == null ? void 0 : _a.defaultFolder) {
+        candidates.unshift(backupObj.native.defaultFolder);
+      }
+    } catch {
+    }
+    for (const p of candidates) {
+      try {
+        await fs.access(p);
+        this.sendTo(obj.from, obj.command, { path: p }, obj.callback);
+        return;
+      } catch {
+      }
+    }
+    this.sendTo(obj.from, obj.command, { path: null }, obj.callback);
+  }
+  // ─── HTTP ────────────────────────────────────────────────────────────────
+  downloadUrl(url) {
+    return new Promise((resolve, reject) => {
+      const mod = url.startsWith("https") ? https : http;
+      mod.get(url, (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => resolve(Buffer.concat(chunks)));
+        res.on("error", reject);
+      }).on("error", reject);
+    });
+  }
+  async handleParseHttpUrl(obj) {
+    if (!this.config.httpEnabled) {
+      this.sendTo(obj.from, obj.command, { error: "HTTP not enabled" }, obj.callback);
+      return;
+    }
+    const msg = obj.message;
+    const filename = msg.url.split("/").pop() || "backup";
+    try {
+      const buf = await this.downloadUrl(msg.url);
+      const scripts = await this.parseBuffer(buf, filename);
+      this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
+    } catch (e) {
+      this.sendTo(obj.from, obj.command, { error: e.message }, obj.callback);
+    }
+  }
+  // ─── SFTP ────────────────────────────────────────────────────────────────
+  async handleTestSftp(obj) {
+    const msg = obj.message;
+    const sftp = new import_ssh2_sftp_client.default();
+    try {
+      await sftp.connect({ host: msg.host, port: msg.port || 22, username: msg.user, password: msg.password });
+      const list = await sftp.list(msg.path || "/");
+      const count = list.filter((i) => i.type === "-").length;
+      this.sendTo(
+        obj.from,
+        obj.command,
+        { success: true, message: `Verbunden! ${count} Datei(en) in: ${msg.path || "/"}` },
+        obj.callback
+      );
+    } catch (e) {
+      this.sendTo(obj.from, obj.command, { success: false, message: e.message }, obj.callback);
+    } finally {
+      await sftp.end();
+    }
+  }
+  async handleListSftpFiles(obj) {
+    if (!this.config.sftpEnabled) {
+      this.sendTo(obj.from, obj.command, { error: "SFTP not enabled" }, obj.callback);
+      return;
+    }
+    const sftp = new import_ssh2_sftp_client.default();
+    try {
+      await sftp.connect({
+        host: this.config.sftpHost,
+        port: this.config.sftpPort || 22,
+        username: this.config.sftpUser,
+        password: this.config.sftpPassword
+      });
+      const remotePath = this.config.sftpPath || "/";
+      const list = await sftp.list(remotePath);
+      const files = list.filter((i) => {
+        const n = i.name;
+        return i.type === "-" && (n.startsWith("iobroker") || n.startsWith("javascript")) && (n.endsWith(".tar.gz") || n.endsWith(".tar") || n.endsWith(".json") || n.endsWith(".jsonl"));
+      }).map((i) => i.name).sort().reverse();
+      this.sendTo(obj.from, obj.command, { files, path: remotePath }, obj.callback);
+    } catch (e) {
+      this.sendTo(obj.from, obj.command, { error: e.message }, obj.callback);
+    } finally {
+      await sftp.end();
+    }
+  }
+  async handleParseSftpFile(obj) {
+    if (!this.config.sftpEnabled) {
+      this.sendTo(obj.from, obj.command, { error: "SFTP not enabled" }, obj.callback);
+      return;
+    }
+    const msg = obj.message;
+    const filename = path.basename(msg.filename);
+    const remotePath = path.posix.join(this.config.sftpPath || "/", filename);
+    const sftp = new import_ssh2_sftp_client.default();
+    try {
+      await sftp.connect({
+        host: this.config.sftpHost,
+        port: this.config.sftpPort || 22,
+        username: this.config.sftpUser,
+        password: this.config.sftpPassword
+      });
+      const buf = await sftp.get(remotePath);
+      const scripts = await this.parseBuffer(buf, filename);
+      this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
+    } catch (e) {
+      this.sendTo(obj.from, obj.command, { error: e.message }, obj.callback);
+    } finally {
+      await sftp.end();
+    }
+  }
+  // ─── WebDAV ──────────────────────────────────────────────────────────────
+  async handleTestWebdav(obj) {
+    const msg = obj.message;
+    try {
+      const { createClient: createWebdavClient } = await Promise.resolve().then(() => __toESM(require("webdav")));
+      const client = createWebdavClient(msg.url, { username: msg.user, password: msg.password });
+      const list = await client.getDirectoryContents(msg.path || "/");
+      const arr = Array.isArray(list) ? list : list.data;
+      this.sendTo(
+        obj.from,
+        obj.command,
+        { success: true, message: `Verbunden! ${arr.length} Eintr\xE4ge in: ${msg.path || "/"}` },
+        obj.callback
+      );
+    } catch (e) {
+      this.sendTo(obj.from, obj.command, { success: false, message: e.message }, obj.callback);
+    }
+  }
+  async handleListWebdavFiles(obj) {
+    if (!this.config.webdavEnabled) {
+      this.sendTo(obj.from, obj.command, { error: "WebDAV not enabled" }, obj.callback);
+      return;
+    }
+    try {
+      const { createClient: createWebdavClient } = await Promise.resolve().then(() => __toESM(require("webdav")));
+      const client = createWebdavClient(this.config.webdavUrl, {
+        username: this.config.webdavUser,
+        password: this.config.webdavPassword
+      });
+      const remotePath = this.config.webdavPath || "/";
+      const list = await client.getDirectoryContents(remotePath);
+      const arr = Array.isArray(list) ? list : list.data;
+      const files = arr.filter((i) => {
+        const n = i.basename;
+        return i.type === "file" && (n.startsWith("iobroker") || n.startsWith("javascript")) && (n.endsWith(".tar.gz") || n.endsWith(".tar") || n.endsWith(".json") || n.endsWith(".jsonl"));
+      }).map((i) => i.basename).sort().reverse();
+      this.sendTo(obj.from, obj.command, { files, path: remotePath }, obj.callback);
+    } catch (e) {
+      this.sendTo(obj.from, obj.command, { error: e.message }, obj.callback);
+    }
+  }
+  async handleParseWebdavFile(obj) {
+    if (!this.config.webdavEnabled) {
+      this.sendTo(obj.from, obj.command, { error: "WebDAV not enabled" }, obj.callback);
+      return;
+    }
+    const msg = obj.message;
+    const filename = path.basename(msg.filename);
+    try {
+      const { createClient: createWebdavClient } = await Promise.resolve().then(() => __toESM(require("webdav")));
+      const client = createWebdavClient(this.config.webdavUrl, {
+        username: this.config.webdavUser,
+        password: this.config.webdavPassword
+      });
+      const remotePath = (this.config.webdavPath ? `${this.config.webdavPath}/` : "/") + filename;
+      const buf = Buffer.from(await client.getFileContents(remotePath));
+      const scripts = await this.parseBuffer(buf, filename);
+      this.sendTo(obj.from, obj.command, { scripts }, obj.callback);
+    } catch (e) {
+      this.sendTo(obj.from, obj.command, { error: e.message }, obj.callback);
+    }
   }
 }
 if (require.main !== module) {

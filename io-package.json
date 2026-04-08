@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "script-restore",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "news": {
+      "0.0.6": {
+        "en": "Add HTTP/SFTP/WebDAV backup sources; multi-select scripts with Ctrl+click and ZIP download; remember last loaded backup; auto-detect local backup path",
+        "de": "HTTP/SFTP/WebDAV als Backup-Quellen; Mehrfachauswahl mit Strg+Klick und ZIP-Download; letztes Backup merken; lokalen Backup-Pfad auto-erkennen",
+        "ru": "Добавлены источники HTTP/SFTP/WebDAV; множественный выбор с Ctrl+клик и ZIP-загрузка; запоминание последнего бэкапа; авто-определение пути",
+        "pt": "Fontes HTTP/SFTP/WebDAV; seleção múltipla com Ctrl+clique e download ZIP; memorizar último backup; deteção automática do caminho",
+        "nl": "HTTP/SFTP/WebDAV bronnen; meervoudige selectie met Ctrl+klik en ZIP-download; laatste backup onthouden; automatische paddetectie",
+        "fr": "Sources HTTP/SFTP/WebDAV; sélection multiple avec Ctrl+clic et téléchargement ZIP; mémoriser le dernier backup; détection auto du chemin",
+        "it": "Sorgenti HTTP/SFTP/WebDAV; selezione multipla con Ctrl+clic e download ZIP; ricordare ultimo backup; rilevamento automatico percorso",
+        "es": "Fuentes HTTP/SFTP/WebDAV; selección múltiple con Ctrl+clic y descarga ZIP; recordar último backup; detección automática de ruta",
+        "pl": "Źródła HTTP/SFTP/WebDAV; wielokrotny wybór Ctrl+klik i pobieranie ZIP; zapamiętywanie ostatniego backupu; auto-wykrywanie ścieżki",
+        "uk": "Джерела HTTP/SFTP/WebDAV; множинний вибір Ctrl+клік та ZIP-завантаження; запам'ятовування останнього бекапу; авто-визначення шляху",
+        "zh-cn": "添加 HTTP/SFTP/WebDAV 备份来源；Ctrl+单击多选及 ZIP 下载；记住最后加载的备份；自动检测本地备份路径"
+      },
       "0.0.5": {
         "en": "Add FTP/SMB as optional backup sources with test button; make local source optional; configurable Beaufort threshold",
         "de": "FTP/SMB als optionale Backup-Quellen mit Testbutton; lokale Quelle optional schaltbar; SMB-Versionshinweis",
@@ -155,15 +168,31 @@
     "smbPath": "",
     "smbUser": "",
     "smbPassword": "",
-    "smbDomain": ""
+    "smbDomain": "",
+    "httpEnabled": false,
+    "sftpEnabled": false,
+    "sftpHost": "",
+    "sftpPort": 22,
+    "sftpUser": "",
+    "sftpPassword": "",
+    "sftpPath": "/",
+    "webdavEnabled": false,
+    "webdavUrl": "",
+    "webdavUser": "",
+    "webdavPassword": "",
+    "webdavPath": "/"
   },
   "protectedNative": [
     "ftpPassword",
-    "smbPassword"
+    "smbPassword",
+    "sftpPassword",
+    "webdavPassword"
   ],
   "encryptedNative": [
     "ftpPassword",
-    "smbPassword"
+    "smbPassword",
+    "sftpPassword",
+    "webdavPassword"
   ],
   "objects": [],
   "instanceObjects": []

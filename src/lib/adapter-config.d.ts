@@ -20,6 +20,18 @@ declare global {
 			smbUser: string;
 			smbPassword: string;
 			smbDomain: string;
+			httpEnabled: boolean;
+			sftpEnabled: boolean;
+			sftpHost: string;
+			sftpPort: number;
+			sftpUser: string;
+			sftpPassword: string;
+			sftpPath: string;
+			webdavEnabled: boolean;
+			webdavUrl: string;
+			webdavUser: string;
+			webdavPassword: string;
+			webdavPath: string;
 		}
 	}
 }

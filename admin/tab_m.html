@@ -148,6 +148,7 @@
 
 		.script-item:hover { background-color: #f0f7ff; }
 		.script-item.active { background-color: #e7f1ff; border-left: 3px solid var(--primary); padding-left: calc(12px - 3px); }
+		.script-item.selected { background-color: #fff3cd; border-left: 3px solid #ffc107; padding-left: calc(12px - 3px); }
 		.tree-script.active { padding-left: calc(32px - 3px); }
 		.tree-children .tree-children .tree-script.active { padding-left: calc(50px - 3px); }
 		.tree-children .tree-children .tree-children .tree-script.active { padding-left: calc(68px - 3px); }
@@ -339,6 +340,23 @@
 				</button>
 				<div class="dropdown-menu" id="smbMenu"></div>
 			</div>
+			<div class="dropdown-wrapper" id="sftpDropdown" style="display:none;">
+				<button class="btn btn-outline" onclick="toggleDropdown('sftp')">
+					🔒 SFTP Backups ▾
+				</button>
+				<div class="dropdown-menu" id="sftpMenu"></div>
+			</div>
+			<div class="dropdown-wrapper" id="webdavDropdown" style="display:none;">
+				<button class="btn btn-outline" onclick="toggleDropdown('webdav')">
+					☁️ WebDAV Backups ▾
+				</button>
+				<div class="dropdown-menu" id="webdavMenu"></div>
+			</div>
+			<div id="httpInputWrapper" style="display:none; display:flex; align-items:center; gap:6px;">
+				<input type="text" id="httpUrlInput" placeholder="https://..." style="padding:0.35rem 0.6rem; border:1px solid #ced4da; border-radius:4px; font-size:0.875rem; min-width:260px; font-family:inherit;">
+				<button class="btn btn-outline" onclick="loadHttpUrl()">🌐 URL laden</button>
+			</div>
+			<button id="zipBtn" class="btn btn-outline" onclick="downloadZip()" style="display:none;">📦 ZIP</button>
 			<span class="status-msg" id="statusMsg">Backup laden oder Quelle wählen</span>
 		</div>
 	</div>
@@ -687,7 +705,7 @@
 						const scripts = parseJsonContent(reader.result, file.name);
 						hideLoader();
 						loadScripts(scripts);
-						setStatus(scripts.length + ' Skripte geladen aus: ' + file.name, 'success');
+						saveLastBackup('Upload', file.name); setStatus(scripts.length + ' Skripte geladen aus: ' + file.name, 'success');
 					} catch(e) {
 						hideLoader();
 						setStatus('Fehler beim Parsen: ' + e.message, 'error');
@@ -710,7 +728,7 @@
 					const scripts = await parseArchiveInBrowser(archiveReader.result, file.name); // result is ArrayBuffer
 					hideLoader();
 					loadScripts(scripts);
-					setStatus(scripts.length + ' Skripte geladen aus: ' + file.name, 'success');
+					saveLastBackup('Upload', file.name); setStatus(scripts.length + ' Skripte geladen aus: ' + file.name, 'success');
 				} catch(e) {
 					hideLoader();
 					setStatus('Fehler: ' + e.message, 'error');
@@ -724,6 +742,19 @@
 			this.value = '';
 		});
 
+		// === localStorage: last loaded backup ===
+		const LS_KEY = 'scriptRestore_lastBackup';
+		function saveLastBackup(source, label) {
+			try { localStorage.setItem(LS_KEY, JSON.stringify({ source, label })); } catch {}
+		}
+		function restoreLastBackup() {
+			try {
+				const d = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+				if (d) setStatus('Zuletzt geladen: [' + escapeHTML(d.source) + '] ' + escapeHTML(d.label), '');
+			} catch {}
+		}
+		restoreLastBackup();
+
 		// === Source Config ===
 		function loadSourceConfig(attempt) {
 			attempt = attempt || 0;
@@ -735,16 +766,21 @@
 				if (result.localEnabled === false) document.getElementById('localDropdown').style.display = 'none';
 				if (result.ftpEnabled) document.getElementById('ftpDropdown').style.display = '';
 				if (result.smbEnabled) document.getElementById('smbDropdown').style.display = '';
+				if (result.sftpEnabled) document.getElementById('sftpDropdown').style.display = '';
+				if (result.webdavEnabled) document.getElementById('webdavDropdown').style.display = '';
+				if (result.httpEnabled) document.getElementById('httpInputWrapper').style.display = 'flex';
 			});
 		}
 		setTimeout(function() { loadSourceConfig(0); }, 300);
 
-		// === Dropdowns (local / ftp / smb) ===
-		const dropdownState = { local: false, ftp: false, smb: false };
+		// === Dropdowns (local / ftp / smb / sftp / webdav) ===
+		const dropdownState = { local: false, ftp: false, smb: false, sftp: false, webdav: false };
 		const dropdownConfig = {
-			local: { listCmd: 'listLocalFiles', parseCmd: 'parseLocalFile', menuId: 'localMenu', wrapperId: 'localDropdown' },
-			ftp:   { listCmd: 'listFtpFiles',   parseCmd: 'parseFtpFile',   menuId: 'ftpMenu',   wrapperId: 'ftpDropdown'   },
-			smb:   { listCmd: 'listSmbFiles',   parseCmd: 'parseSmbFile',   menuId: 'smbMenu',   wrapperId: 'smbDropdown'   },
+			local:  { listCmd: 'listLocalFiles',  parseCmd: 'parseLocalFile',  menuId: 'localMenu',  wrapperId: 'localDropdown'  },
+			ftp:    { listCmd: 'listFtpFiles',     parseCmd: 'parseFtpFile',    menuId: 'ftpMenu',    wrapperId: 'ftpDropdown'    },
+			smb:    { listCmd: 'listSmbFiles',     parseCmd: 'parseSmbFile',    menuId: 'smbMenu',    wrapperId: 'smbDropdown'    },
+			sftp:   { listCmd: 'listSftpFiles',    parseCmd: 'parseSftpFile',   menuId: 'sftpMenu',   wrapperId: 'sftpDropdown'   },
+			webdav: { listCmd: 'listWebdavFiles',  parseCmd: 'parseWebdavFile', menuId: 'webdavMenu', wrapperId: 'webdavDropdown' },
 		};
 
 		function toggleDropdown(src) {
@@ -810,6 +846,7 @@
 					setStatus('Fehler: ' + result.error, 'error');
 				} else if (result && result.scripts) {
 					loadScripts(result.scripts);
+					saveLastBackup(src.toUpperCase(), filename);
 					setStatus(result.scripts.length + ' Skripte geladen aus: ' + filename, 'success');
 				} else {
 					setStatus('Keine Skripte gefunden.', 'error');
@@ -817,9 +854,61 @@
 			});
 		}
 
+		// === HTTP URL ===
+		function loadHttpUrl() {
+			const url = document.getElementById('httpUrlInput').value.trim();
+			if (!url) return;
+			const filename = url.split('/').pop() || 'backup';
+			showLoaderSpinner('Lade URL...');
+			sendTo('parseHttpUrl', { url }, function(result) {
+				hideLoader();
+				if (result && result.error) {
+					setStatus('Fehler: ' + result.error, 'error');
+				} else if (result && result.scripts) {
+					loadScripts(result.scripts);
+					saveLastBackup('HTTP', filename);
+					setStatus(result.scripts.length + ' Skripte geladen von URL', 'success');
+				} else {
+					setStatus('Keine Skripte gefunden.', 'error');
+				}
+			});
+		}
+
+		// === Multi-Select & ZIP ===
+		let selectedIndices = new Set();
+
+		function toggleSelect(idx, el) {
+			if (selectedIndices.has(idx)) {
+				selectedIndices.delete(idx);
+				el.classList.remove('selected');
+			} else {
+				selectedIndices.add(idx);
+				el.classList.add('selected');
+			}
+			document.getElementById('zipBtn').style.display = selectedIndices.size > 1 ? '' : 'none';
+		}
+
+		async function downloadZip() {
+			if (selectedIndices.size < 2) return;
+			const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js');
+			const zip = new JSZip();
+			selectedIndices.forEach(idx => {
+				const s = scriptsData[idx];
+				const ext = s.type === 'TypeScript' ? '.ts' : '.js';
+				zip.file(s.path.replace(/\./g, '/') + ext, s.source || '');
+			});
+			const blob = await zip.generateAsync({ type: 'blob' });
+			const a = document.createElement('a');
+			a.href = URL.createObjectURL(blob);
+			a.download = 'scripts.zip';
+			a.click();
+		}
+
 		function loadScripts(scripts) {
 			scriptsData = scripts;
 			cur = { index: -1 };
+			selectedIndices.clear();
+			document.getElementById('zipBtn').style.display = 'none';
 			openFolders.clear();
 			isAllExpanded = false;
 			document.getElementById('expandToggleBtn').innerHTML = '📂';
@@ -827,7 +916,7 @@
 			document.getElementById('actionBar').style.display = 'none';
 			document.getElementById('codeContainer').className = 'code-empty';
 			document.getElementById('codeContainer').innerHTML = scripts.length > 0
-				? '// Skript im Baum links auswählen...'
+				? '// Skript im Baum links auswählen… oder mehrere mit Strg+Klick für ZIP'
 				: '<span style="color:#dc3545">Keine Skripte in diesem Backup gefunden.</span>';
 		}
 
@@ -924,9 +1013,15 @@
 		function createScriptNode(s, idx) {
 			const badgeText = s.type === 'TypeScript' ? 'TS' : (s.type === 'Blockly' ? 'Blockly' : (s.type === 'Rules' ? 'RULES' : 'JS'));
 			const div = document.createElement('div');
-			div.className = 'script-item' + (cur.index === idx ? ' active' : '');
+			div.className = 'script-item' + (cur.index === idx ? ' active' : '') + (selectedIndices.has(idx) ? ' selected' : '');
 			div.dataset.index = idx;
-			div.onclick = () => selectScript(idx);
+			div.onclick = (e) => {
+				if (e.ctrlKey || e.metaKey) {
+					toggleSelect(idx, div);
+				} else {
+					selectScript(idx);
+				}
+			};
 			div.innerHTML = '<div class="script-name" title="' + escapeHTML(s.path) + '">📄 ' + escapeHTML(s.name) + '</div>' +
 				'<span class="type-badge badge-' + s.type + '">' + badgeText + '</span>';
 			return div;
