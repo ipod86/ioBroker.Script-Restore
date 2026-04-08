@@ -75,6 +75,10 @@ The archive is parsed entirely in the browser — no files are written to disk d
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### 0.0.7 (2026-04-08)
+* (ipod86) fix HTTP URL loading without protocol prefix (auto-prepend https://)
+* (ipod86) remove localStorage persistence for last loaded backup
+
 ### 0.0.6 (2026-04-08)
 * (ipod86) add HTTP, SFTP and WebDAV as optional backup sources
 * (ipod86) multi-select scripts with Ctrl+click and download as ZIP

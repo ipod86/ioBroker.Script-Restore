@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "script-restore",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "news": {
+      "0.0.7": {
+        "en": "Fix HTTP URL loading without protocol prefix; remove localStorage backup persistence",
+        "de": "HTTP-URL-Laden ohne Protokoll-Präfix behoben; localStorage-Backup-Persistenz entfernt",
+        "ru": "Исправлена загрузка HTTP URL без префикса протокола; удалено сохранение резервной копии в localStorage",
+        "pt": "Corrigido carregamento de URL HTTP sem prefixo de protocolo; removida persistência de backup em localStorage",
+        "nl": "HTTP URL laden zonder protocolprefix opgelost; localStorage backup persistentie verwijderd",
+        "fr": "Correction du chargement d'URL HTTP sans préfixe de protocole; suppression de la persistance de sauvegarde localStorage",
+        "it": "Corretto caricamento URL HTTP senza prefisso protocollo; rimossa persistenza backup localStorage",
+        "es": "Corregida carga de URL HTTP sin prefijo de protocolo; eliminada persistencia de backup en localStorage",
+        "pl": "Naprawiono ładowanie URL HTTP bez prefiksu protokołu; usunięto trwałość kopii zapasowej localStorage",
+        "uk": "Виправлено завантаження HTTP URL без префіксу протоколу; видалено збереження резервної копії в localStorage",
+        "zh-cn": "修复无协议前缀的 HTTP URL 加载；移除 localStorage 备份持久化"
+      },
       "0.0.6": {
         "en": "Add HTTP/SFTP/WebDAV backup sources; multi-select scripts with Ctrl+click and ZIP download; remember last loaded backup; auto-detect local backup path",
         "de": "HTTP/SFTP/WebDAV als Backup-Quellen; Mehrfachauswahl mit Strg+Klick und ZIP-Download; letztes Backup merken; lokalen Backup-Pfad auto-erkennen",
