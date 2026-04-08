@@ -600,7 +600,8 @@ class ScriptRestore extends utils.Adapter {
 
 	// ─── HTTP ────────────────────────────────────────────────────────────────
 
-	private downloadUrl(url: string): Promise<Buffer> {
+	private downloadUrl(urlRaw: string): Promise<Buffer> {
+		const url = urlRaw.startsWith("http://") || urlRaw.startsWith("https://") ? urlRaw : `https://${urlRaw}`;
 		return new Promise((resolve, reject) => {
 			const mod = url.startsWith("https") ? https : http;
 			mod.get(url, res => {

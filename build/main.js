@@ -520,7 +520,8 @@ class ScriptRestore extends utils.Adapter {
     this.sendTo(obj.from, obj.command, { path: null }, obj.callback);
   }
   // ─── HTTP ────────────────────────────────────────────────────────────────
-  downloadUrl(url) {
+  downloadUrl(urlRaw) {
+    const url = urlRaw.startsWith("http://") || urlRaw.startsWith("https://") ? urlRaw : `https://${urlRaw}`;
     return new Promise((resolve, reject) => {
       const mod = url.startsWith("https") ? https : http;
       mod.get(url, (res) => {
