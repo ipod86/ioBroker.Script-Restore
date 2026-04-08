@@ -63,24 +63,24 @@ class ScriptRestore extends utils.Adapter {
 					await this.handleParseUploadedFile(obj);
 					break;
 				case "getSourceConfig":
-				this.sendTo(
-					obj.from,
-					obj.command,
-					{
-						localEnabled: this.config.localEnabled !== false,
-						ftpEnabled: !!this.config.ftpEnabled,
-						smbEnabled: !!this.config.smbEnabled,
-					},
-					obj.callback,
-				);
-				break;
-			case "testFtp":
-				await this.handleTestFtp(obj);
-				break;
-			case "testSmb":
-				await this.handleTestSmb(obj);
-				break;
-			case "listFtpFiles":
+					this.sendTo(
+						obj.from,
+						obj.command,
+						{
+							localEnabled: this.config.localEnabled !== false,
+							ftpEnabled: !!this.config.ftpEnabled,
+							smbEnabled: !!this.config.smbEnabled,
+						},
+						obj.callback,
+					);
+					break;
+				case "testFtp":
+					await this.handleTestFtp(obj);
+					break;
+				case "testSmb":
+					await this.handleTestSmb(obj);
+					break;
+				case "listFtpFiles":
 					await this.handleListFtpFiles(obj);
 					break;
 				case "parseFtpFile":
@@ -126,7 +126,12 @@ class ScriptRestore extends utils.Adapter {
 				.reverse();
 			this.sendTo(obj.from, obj.command, { files, path: backupPath }, obj.callback);
 		} catch (e) {
-			this.sendTo(obj.from, obj.command, { error: `Verzeichnis nicht lesbar: ${(e as Error).message}` }, obj.callback);
+			this.sendTo(
+				obj.from,
+				obj.command,
+				{ error: `Verzeichnis nicht lesbar: ${(e as Error).message}` },
+				obj.callback,
+			);
 		}
 	}
 
@@ -162,7 +167,14 @@ class ScriptRestore extends utils.Adapter {
 	// ─── Tests ───────────────────────────────────────────────────────────────
 
 	private async handleTestFtp(obj: ioBroker.Message): Promise<void> {
-		const msg = obj.message as { host: string; port: number; user: string; password: string; path: string; secure: boolean };
+		const msg = obj.message as {
+			host: string;
+			port: number;
+			user: string;
+			password: string;
+			path: string;
+			secure: boolean;
+		};
 		const client = new ftp.Client();
 		client.ftp.verbose = false;
 		try {
@@ -175,7 +187,12 @@ class ScriptRestore extends utils.Adapter {
 			});
 			const list = await client.list(msg.path || "/");
 			const count = list.filter(i => i.type === ftp.FileType.File).length;
-			this.sendTo(obj.from, obj.command, { success: true, message: `Verbunden! ${count} Datei(en) gefunden in: ${msg.path || "/"}` }, obj.callback);
+			this.sendTo(
+				obj.from,
+				obj.command,
+				{ success: true, message: `Verbunden! ${count} Datei(en) gefunden in: ${msg.path || "/"}` },
+				obj.callback,
+			);
 		} catch (e) {
 			this.sendTo(obj.from, obj.command, { success: false, message: (e as Error).message }, obj.callback);
 		} finally {
@@ -184,7 +201,14 @@ class ScriptRestore extends utils.Adapter {
 	}
 
 	private async handleTestSmb(obj: ioBroker.Message): Promise<void> {
-		const msg = obj.message as { host: string; share: string; path: string; user: string; password: string; domain: string };
+		const msg = obj.message as {
+			host: string;
+			share: string;
+			path: string;
+			user: string;
+			password: string;
+			domain: string;
+		};
 		const smb = new SMB2({
 			share: `\\\\${msg.host}\\${msg.share}`,
 			username: msg.user || "",
@@ -193,7 +217,15 @@ class ScriptRestore extends utils.Adapter {
 		});
 		try {
 			const files = await this.smbReaddir(smb, msg.path || "");
-			this.sendTo(obj.from, obj.command, { success: true, message: `Verbunden! ${files.length} Einträge in: \\\\${msg.host}\\${msg.share}${msg.path ? "\\" + msg.path : ""}` }, obj.callback);
+			this.sendTo(
+				obj.from,
+				obj.command,
+				{
+					success: true,
+					message: `Verbunden! ${files.length} Einträge in: \\\\${msg.host}\\${msg.share}${msg.path ? `\\${msg.path}` : ""}`,
+				},
+				obj.callback,
+			);
 		} catch (e) {
 			this.sendTo(obj.from, obj.command, { success: false, message: (e as Error).message }, obj.callback);
 		} finally {
@@ -292,8 +324,11 @@ class ScriptRestore extends utils.Adapter {
 	private smbReaddir(smb: typeof SMB2, dirPath: string): Promise<string[]> {
 		return new Promise((resolve, reject) => {
 			smb.readdir(dirPath, (err: Error | null, files: string[]) => {
-				if (err) reject(err);
-				else resolve(files);
+				if (err) {
+					reject(err);
+				} else {
+					resolve(files);
+				}
 			});
 		});
 	}
@@ -301,8 +336,11 @@ class ScriptRestore extends utils.Adapter {
 	private smbReadFile(smb: typeof SMB2, filePath: string): Promise<Buffer> {
 		return new Promise((resolve, reject) => {
 			smb.readFile(filePath, (err: Error | null, data: Buffer) => {
-				if (err) reject(err);
-				else resolve(data);
+				if (err) {
+					reject(err);
+				} else {
+					resolve(data);
+				}
 			});
 		});
 	}
@@ -408,7 +446,9 @@ class ScriptRestore extends utils.Adapter {
 				const p = path.join(d, String(e.name));
 				if (e.isDirectory()) {
 					const found = await walk(p);
-					if (found) return found;
+					if (found) {
+						return found;
+					}
 				} else if (names.includes(String(e.name))) {
 					return p;
 				}
@@ -429,7 +469,9 @@ class ScriptRestore extends utils.Adapter {
 		if (isJsonl) {
 			for (const line of content.split("\n")) {
 				const l = line.trim();
-				if (!l) continue;
+				if (!l) {
+					continue;
+				}
 				try {
 					const item = JSON.parse(l) as Record<string, unknown>;
 					this.processItem(
@@ -452,14 +494,22 @@ class ScriptRestore extends utils.Adapter {
 	}
 
 	private processItem(key: string, val: unknown, scripts: ScriptEntry[]): void {
-		if (!key || typeof val !== "object" || val === null) return;
+		if (!key || typeof val !== "object" || val === null) {
+			return;
+		}
 		const v = val as Record<string, unknown>;
 
-		if (["channel", "device", "folder", "meta"].includes(v.type as string)) return;
-		if (v.type !== "script" && !key.startsWith("script.js.")) return;
+		if (["channel", "device", "folder", "meta"].includes(v.type as string)) {
+			return;
+		}
+		if (v.type !== "script" && !key.startsWith("script.js.")) {
+			return;
+		}
 
 		const c = v.common as Record<string, unknown> | undefined;
-		if (!c || (c.engineType === undefined && c.source === undefined)) return;
+		if (!c || (c.engineType === undefined && c.source === undefined)) {
+			return;
+		}
 
 		const rawEngineType = typeof c.engineType === "string" ? c.engineType : "JS";
 		const engineType = rawEngineType.toLowerCase();
