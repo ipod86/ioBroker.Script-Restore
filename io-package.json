@@ -1,12 +1,8 @@
 {
   "common": {
     "name": "script-restore",
-    "version": "0.0.11",
+    "version": "0.0.10",
     "news": {
-      "0.0.11": {
-        "en": "Add type filter (JS/TS/Blockly/Rules) and direct restore to ioBroker with configurable suffix",
-        "de": "Typ-Filter (JS/TS/Blockly/Rules) und direktes Laden in ioBroker mit konfigurierbarem Suffix hinzugefügt"
-      },
       "0.0.10": {
         "en": "Fix jsonConfig responsive sizes (E5509); trim news to 7 entries; add Dependabot cooldown",
         "de": "jsonConfig Responsive-Größen korrigiert (E5509); News auf 7 Einträge reduziert; Dependabot-Cooldown ergänzt",
