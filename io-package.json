@@ -142,7 +142,7 @@
     "loglevel": "info",
     "tier": 3,
     "mode": "daemon",
-    "type": "utility",
+    "type": "tools",
     "compact": true,
     "singleton": true,
     "messagebox": true,
