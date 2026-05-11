@@ -144,7 +144,7 @@ class ScriptRestore extends utils.Adapter {
 		const backupPath = this.config.backupPath || "/opt/iobroker/backups";
 		try {
 			const rawEntries = await fs.readdir(backupPath, { withFileTypes: true, encoding: "utf8" });
-			const entries = rawEntries as unknown as Dirent[];
+			const entries = rawEntries;
 			const files = entries
 				.filter(e => {
 					const n = String(e.name);
@@ -452,7 +452,7 @@ class ScriptRestore extends utils.Adapter {
 		const walk = async (d: string): Promise<string | null> => {
 			let entries: Dirent[];
 			try {
-				entries = (await fs.readdir(d, { withFileTypes: true, encoding: "utf8" })) as unknown as Dirent[];
+				entries = await fs.readdir(d, { withFileTypes: true, encoding: "utf8" });
 			} catch {
 				return null;
 			}
@@ -488,11 +488,7 @@ class ScriptRestore extends utils.Adapter {
 				}
 				try {
 					const item = JSON.parse(l) as Record<string, unknown>;
-					this.processItem(
-						(item._id || item.id) as string,
-						(item.value || item.doc || item) as Record<string, unknown>,
-						scripts,
-					);
+					this.processItem((item._id || item.id) as string, item.value || item.doc || item, scripts);
 				} catch {
 					// skip invalid lines
 				}
@@ -500,7 +496,7 @@ class ScriptRestore extends utils.Adapter {
 		} else {
 			const data = JSON.parse(content) as Record<string, unknown>;
 			for (const [k, v] of Object.entries(data)) {
-				this.processItem(k, v as Record<string, unknown>, scripts);
+				this.processItem(k, v, scripts);
 			}
 		}
 
@@ -846,7 +842,7 @@ class ScriptRestore extends utils.Adapter {
 				if (!existing) {
 					await this.setForeignObjectAsync(folderId, {
 						type: "folder",
-						common: { name: parts[i] } as ioBroker.ObjectCommon,
+						common: { name: parts[i] },
 						native: {},
 					});
 				}
