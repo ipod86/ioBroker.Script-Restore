@@ -436,11 +436,7 @@ class ScriptRestore extends utils.Adapter {
         }
         try {
           const item = JSON.parse(l);
-          this.processItem(
-            item._id || item.id,
-            item.value || item.doc || item,
-            scripts
-          );
+          this.processItem(item._id || item.id, item.value || item.doc || item, scripts);
         } catch {
         }
       }

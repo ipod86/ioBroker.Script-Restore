@@ -75,6 +75,12 @@ The archive is parsed entirely in the browser — no files are written to disk d
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+### 0.1.0 (2026-05-13)
+* (ipod86) drop Node.js 20 support (EOL 2026-04-30), require >= 22
+* (ipod86) fix: move @iobroker/types to production dependencies to fix CI integration test
+* (ipod86) add .npmrc with legacy-peer-deps to resolve peer dependency conflicts
+* (ipod86) update dependencies: webdav, basic-ftp, typescript, @types/node, @iobroker/eslint-config
+
 ### 0.0.12 (2026-04-30)
 * (ipod86) add common.singleton to prevent multiple instances
 * (ipod86) complete i18n translations for all supported languages (fr, es, it, nl, pl, pt, ru, uk, zh-cn)
@@ -94,12 +100,6 @@ The archive is parsed entirely in the browser — no files are written to disk d
 * (ipod86) add i18n translation files (W5022)
 * (ipod86) remove outdated index_m.html and style.css (W5047)
 * (ipod86) remove invalid copyToField attribute (W5512)
-
-### 0.0.8 (2026-04-08)
-* (ipod86) migrate settings UI to jsonConfig (admin 5+) — fixes S5022
-* (ipod86) fix: use `node:fs` instead of `fs` — fixes S5043
-* (ipod86) update Dependabot schedule from monthly to weekly — fixes S8906
-* (ipod86) rename automerge workflow to automerge-dependabot.yml — fixes S8911
 
 ## License
 MIT License

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "script-restore",
-    "version": "0.0.12",
+    "version": "0.1.0",
     "news": {
+      "0.1.0": {
+        "en": "drop Node.js 20 support (EOL 2026-04-30), require >= 22\nfix: move @iobroker/types to production dependencies to fix CI integration test\nadd .npmrc with legacy-peer-deps to resolve peer dependency conflicts\nupdate dependencies: webdav, basic-ftp, typescript, @types/node, @iobroker/eslint-config",
+        "de": "drop Node.js 20 Unterstützung (EOL 2026-04-30), benötigen >= 22\nfix: bewegen @iobroker/Typen zu Produktionsabhängigkeiten, um CI Integration Test zu beheben\nhinzufügen .npmrc mit legacy-peer-deps, um peer abhängigkeitskonflikte zu lösen\nupdate abhängigkeiten: webdav, basic-ftp, typescript, @types/node, @iobroker/eslint-config",
+        "ru": "отбрасывать поддержку Node.js 20 (EOL 2026-04-30), требовать >= 22\nисправление: перемещение @iobroker/types в производственные зависимости для исправления теста интеграции CI\nдобавить .npmrc с унаследованными одноранговыми депсами для разрешения конфликтов зависимостей сверстников\nзависимости обновления: webdav, basic-ftp, typescript, @types/node, @iobroker/eslint-config",
+        "pt": "drop Node.js 20 suporte (EOL 2026-04-30), exigir >= 22\ncorreção: mover @iobroker/types para dependências de produção para corrigir teste de integração CI\nadicionar .npmrc com legacy-peer-deps para resolver conflitos de dependência entre pares\ndependências de atualização: webdav, basic- ftp, digitação, @types/node, @iobroker/eslint-config",
+        "nl": "voor de toepassing van deze onderverdeling wordt verstaan onder:\nfix: verplaats @iobroker/types naar productie afhankelijkheden om CI integratie test vast te stellen\n.npmrc toevoegen met legacy-peer-deps om peer afhankelijkheidsconflicten op te lossen\nupdate afhankelijkheden: webdav, basic-ftp, typescript, @types/node, @iobroker/eslint-config",
+        "fr": "nœud de chute.js 20 support (EOL 2026-04-30), besoin >= 22\ncorrection : déplacer @iobroker/types aux dépendances de production pour fixer le test d'intégration CI\najouter .npmrc avec legacy-peer-deps pour résoudre les conflits de dépendance entre pairs\nles dépendances de mise à jour: webdav, basic-ftp, typscript, @types/node, @iobroker/eslint-config",
+        "it": "drop Node.js 20 supporto (EOL 2026-04-30), richiedono >= 22\nfix: spostare @iobroker/tipi alle dipendenze di produzione per fissare il test di integrazione CI\naggiungere .npmrc con legacy-peer-deps per risolvere i conflitti di dipendenza tra pari\naggiornamento dipendenze: webdav, basic-ftp, typescript, @types/node, @iobroker/eslint-config",
+        "es": "drop Node.js 20 soporte (EOL 2026-04-30), requerir ≤ 22\narreglar: mover @iobroker/tipos a las dependencias de producción para fijar la prueba de integración de CI\nañadir .npmrc con legado-peer-deps para resolver conflictos de dependencia entre pares\ndependencias de actualización: webdav, basic-ftp, typescript, @types/node, @iobroker/eslint-config",
+        "pl": "drop Node.js 20 support (EOL 2026- 04- 30), require > = 22\nfix: move @ iobroker / types to production dependences to fix CI integration test\ndodaj .npmrc z legacy- peer- deps w celu rozwiązania konfliktów wzajemnej zależności\naktualizacje zależności: webdav, basic- ftp, typescript, @ types / node, @ iobroker / eslint- config",
+        "uk": "javaScript licenses API Веб-сайт Go1.13.8\nвиправити: перемістити @iobroker/types до виробництва залежностей для фіксації тесту інтеграції CI\nдодати .npmrc з спадкоємно-перцевими депсами для вирішення конфліктів залежностей\njavascript licenses api веб-сайт go1.13.8",
+        "zh-cn": "drop Node.js 20 支持(EOL 2026-04-30), 需要 >= 22\n固定 : 将 @iobroduc/ types 移动到生产依赖, 以固定 CI 集成测试\n添加 .npmrc 和 least- peer- deps 以解决同伴依赖冲突\n更新依赖性:webdav, basic-ftp, typescript, @types/node, @iobroster/eslint-config"
+      },
       "0.0.12": {
         "en": "add common.singleton to prevent multiple instances\ncomplete i18n translations for all supported languages (fr, es, it, nl, pl, pt, ru, uk, zh-cn)",
         "de": "fügen sie gemeinsam hinzu. singleton, um mehrere instanzen zu verhindern\nvollständige i18n übersetzungen für alle unterstützten sprachen (fr, es, it, nl, pl, pt, ru, uk, zh-cn)",
@@ -80,19 +93,6 @@
         "pl": "Naprawiono ładowanie URL HTTP bez prefiksu protokołu; usunięto trwałość kopii zapasowej localStorage",
         "uk": "Виправлено завантаження HTTP URL без префіксу протоколу; видалено збереження резервної копії в localStorage",
         "zh-cn": "修复无协议前缀的 HTTP URL 加载；移除 localStorage 备份持久化"
-      },
-      "0.0.6": {
-        "en": "Add HTTP/SFTP/WebDAV backup sources; multi-select scripts with Ctrl+click and ZIP download; remember last loaded backup; auto-detect local backup path",
-        "de": "HTTP/SFTP/WebDAV als Backup-Quellen; Mehrfachauswahl mit Strg+Klick und ZIP-Download; letztes Backup merken; lokalen Backup-Pfad auto-erkennen",
-        "ru": "Добавлены источники HTTP/SFTP/WebDAV; множественный выбор с Ctrl+клик и ZIP-загрузка; запоминание последнего бэкапа; авто-определение пути",
-        "pt": "Fontes HTTP/SFTP/WebDAV; seleção múltipla com Ctrl+clique e download ZIP; memorizar último backup; deteção automática do caminho",
-        "nl": "HTTP/SFTP/WebDAV bronnen; meervoudige selectie met Ctrl+klik en ZIP-download; laatste backup onthouden; automatische paddetectie",
-        "fr": "Sources HTTP/SFTP/WebDAV; sélection multiple avec Ctrl+clic et téléchargement ZIP; mémoriser le dernier backup; détection auto du chemin",
-        "it": "Sorgenti HTTP/SFTP/WebDAV; selezione multipla con Ctrl+clic e download ZIP; ricordare ultimo backup; rilevamento automatico percorso",
-        "es": "Fuentes HTTP/SFTP/WebDAV; selección múltiple con Ctrl+clic y descarga ZIP; recordar último backup; detección automática de ruta",
-        "pl": "Źródła HTTP/SFTP/WebDAV; wielokrotny wybór Ctrl+klik i pobieranie ZIP; zapamiętywanie ostatniego backupu; auto-wykrywanie ścieżki",
-        "uk": "Джерела HTTP/SFTP/WebDAV; множинний вибір Ctrl+клік та ZIP-завантаження; запам'ятовування останнього бекапу; авто-визначення шляху",
-        "zh-cn": "添加 HTTP/SFTP/WebDAV 备份来源；Ctrl+单击多选及 ZIP 下载；记住最后加载的备份；自动检测本地备份路径"
       }
     },
     "titleLang": {

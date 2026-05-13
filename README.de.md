@@ -78,9 +78,19 @@ Das Archiv wird vollständig im Browser geparst — beim Durchsuchen werden kein
 	### **WORK IN PROGRESS**
 -->
 ### **WORK IN PROGRESS**
+* (ipod86) Node.js 20-Unterstützung eingestellt (EOL 2026-04-30), mindestens Node.js 22 erforderlich
+* (ipod86) Fix: @iobroker/types in production dependencies verschoben (CI-Integrationstests)
+* (ipod86) .npmrc mit legacy-peer-deps hinzugefügt (Peer-Dependency-Konflikte)
+* (ipod86) Abhängigkeiten aktualisiert: webdav, basic-ftp, typescript, @types/node, @iobroker/eslint-config
+
+### 0.0.12 (2026-04-30)
+* (ipod86) common.singleton hinzugefügt (verhindert mehrere Instanzen)
+* (ipod86) Vollständige i18n-Übersetzungen für alle unterstützten Sprachen (fr, es, it, nl, pl, pt, ru, uk, zh-cn)
+
+### 0.0.11 (2026-04-13)
 * (ipod86) Typ-Filter (JS/TS/Blockly/Rules) in der Skript-Sidebar hinzugefügt
 * (ipod86) Direktes Laden in ioBroker mit Suffix-Eingabe und Bestätigungs-Modal hinzugefügt
-* (ipod86) Veraltete admin/words.js und .prettierignore entfernt
+* (ipod86) Veraltete admin/words.js und .prettierIgnore entfernt
 
 ### 0.0.10 (2026-04-08)
 * (ipod86) jsonConfig: responsive Größen lg/xl für backupPath korrigiert (E5509)
